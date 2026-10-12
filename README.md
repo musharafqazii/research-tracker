@@ -52,3 +52,12 @@ The outline is plain text in `index.html` (`outline:` inside `PROJECTS`): two sp
 renaming an item starts it fresh; adding or removing items is safe.
 
 Before step 4 the page runs in local mode: everything is saved in your browser only.
+
+## Meetings
+
+Click **Meetings** in the toolbar to open a small scheduler: either person can propose a date/time
+(with an optional note), the other can **Confirm** or **Decline** it, and a confirmed meeting gets an
+**Add to calendar** button that downloads a `.ics` file you can open in Google Calendar, Apple Calendar,
+Outlook, etc. Meetings are stored the same way as ticks and comments (shared Firestore, or this browser
+only before Firebase is set up), and proposing or responding to a meeting sends the other person an email
+if comment notifications are configured (see above) — it reuses the same EmailJS template.

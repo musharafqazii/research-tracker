@@ -133,6 +133,25 @@ ul.kids{list-style:none;margin:0;padding:0}
 .post:disabled{opacity:.45;cursor:default}
 .empty{font-size:13px;color:var(--faint)}
 
+/* meetings */
+.meetings{background:var(--surface);border:1px solid var(--rule);border-radius:12px;padding:16px 18px 18px;margin-bottom:18px}
+.meetings h3{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.mlist{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:10px}
+.mcard{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;padding:10px 12px;border-radius:8px;background:var(--sunk)}
+.mcard.past{opacity:.6}
+.mwhen{font:600 13px/1.3 var(--f-mono);color:var(--ink)}
+.mheadline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mby{font-size:12px;color:var(--muted)}
+.mnote{font-size:13px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.mactions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.mactions .tbtn{border:1px solid var(--rule);border-radius:6px;padding:5px 10px}
+.chip.pending{background:var(--part-soft);color:var(--part)}
+.chip.no{background:var(--sunk);color:var(--faint);text-decoration:line-through}
+.mform{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.mform input[type="datetime-local"],.mform select,.mform input[type="text"]{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.mform input[type="text"]{flex:1;min-width:160px}
+@media (max-width:560px){.mcard{grid-template-columns:1fr}}
+
 /* aside */
 .aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
 .aside h3{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:4px 0 12px}
@@ -177,7 +196,21 @@ mjx-container{font-size:105%!important}
     <input class="search" id="q" type="search" placeholder="Find a topic, e.g. Bogoliubov" aria-label="Find a topic">
     <button class="tbtn" id="expandAll">Expand all</button>
     <button class="tbtn" id="collapseAll">Collapse all</button>
+    <button class="tbtn" id="meetingsToggle" aria-expanded="false">Meetings</button>
   </div>
+  <section class="meetings" id="meetingsPanel" hidden aria-label="Meetings">
+    <h3>Meetings</h3>
+    <ul class="mlist" id="mlist"></ul>
+    <form class="mform" id="mform">
+      <input type="datetime-local" id="mwhen" required aria-label="Date and time">
+      <select id="mdur" aria-label="Duration">
+        <option value="30">30 min</option>
+        <option value="60">60 min</option>
+      </select>
+      <input type="text" id="mnote" placeholder="What's this meeting about? (optional)" aria-label="Note" maxlength="140">
+      <button class="post" type="submit">Propose</button>
+    </form>
+  </section>
   <div class="layout">
     <main id="tree"></main>
     <aside class="aside">
@@ -263,27 +296,32 @@ const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.par
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 function localBackend(pid){
-  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments";
-  let onT=()=>{}, onC=()=>{};
+  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments", kM="rt:"+pid+":meetings";
+  let onT=()=>{}, onC=()=>{}, onM=()=>{};
   return {
     mode:"local", me:"local", canWrite:true,
-    subscribe(t,c){onT=t;onC=c;t(LS.get(kT,{}));c(LS.get(kC,[]));},
+    subscribe(t,c,m){onT=t;onC=c;onM=m;t(LS.get(kT,{}));c(LS.get(kC,[]));m(LS.get(kM,[]));},
     async setTicks(patch){const t=LS.get(kT,{});for(const k in patch){if(patch[k])t[k]=patch[k];else delete t[k];}LS.set(kT,t);onT(t);},
     async addComment(c){const l=LS.get(kC,[]);l.push({...c,id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kC,l);onC(l);},
-    async deleteComment(id){const l=LS.get(kC,[]).filter(x=>x.id!==id);LS.set(kC,l);onC(l);}
+    async deleteComment(id){const l=LS.get(kC,[]).filter(x=>x.id!==id);LS.set(kC,l);onC(l);},
+    async addMeeting(m){const l=LS.get(kM,[]);l.push({...m,id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kM,l);onM(l);},
+    async updateMeeting(id,patch){const l=LS.get(kM,[]).map(x=>x.id===id?{...x,...patch}:x);LS.set(kM,l);onM(l);},
+    async deleteMeeting(id){const l=LS.get(kM,[]).filter(x=>x.id!==id);LS.set(kM,l);onM(l);}
   };
 }
 
 function firebaseBackend(pid,fs,me){
   const ref=fs.collection("trackers").doc(pid);
   const col=ref.collection("comments");
+  const mcol=ref.collection("meetings");
   const del=firebase.firestore.FieldValue.delete();
   let unsub=[];
   return {
     mode:"live", me:me.uid, canWrite:true,
-    subscribe(onT,onC,onErr){
+    subscribe(onT,onC,onM,onErr){
       unsub.push(ref.onSnapshot(s=>onT((s.exists&&s.data().ticks)||{}),onErr));
       unsub.push(col.orderBy("at").onSnapshot(s=>onC(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
+      unsub.push(mcol.orderBy("at").onSnapshot(s=>onM(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
     },
     setTicks(patch){
       const t={}; for(const k in patch) t[k]=patch[k]?{...patch[k],name:me.name,photo:me.photo}:del;
@@ -291,13 +329,16 @@ function firebaseBackend(pid,fs,me){
     },
     addComment(c){return col.add({...c,name:me.name,photo:me.photo});},
     deleteComment(id){return col.doc(id).delete();},
+    addMeeting(m){return mcol.add(m);},
+    updateMeeting(id,patch){return mcol.doc(id).update(patch);},
+    deleteMeeting(id){return mcol.doc(id).delete();},
     stop(){unsub.forEach(u=>u());unsub=[];}
   };
 }
 
 /* ------------------------------------------------------------------ state */
 let project=PROJECTS[0], tree=null, nodes=new Map(), backend=null;
-let ticks={}, comments=[], names={}, filter="all", query="";
+let ticks={}, comments=[], meetings=[], names={}, filter="all", query="";
 let expanded=new Set(LS.get("rt:expanded:"+project.id,null)||[]);
 const openPanels=new Set();
 const els=new Map();   // node id -> {li,row,cb,pct,mini,cm,cmN,cmSub,panel,list,kids,tw}
@@ -430,6 +471,7 @@ function refresh(){
   $("#sT").textContent=`${lt.filter(l=>ticks[l.id]).length} / ${lt.length} items`;
   $("#sN").textContent=`${ln.filter(l=>ticks[l.id]).length} / ${ln.length} items`;
   renderActivity();
+  renderMeetings();
 }
 function setMeter(k,p){ $("#m"+k).textContent=pctText(p); const b=$("#b"+k); b.style.width=(p*100)+"%"; b.classList.toggle("full",p>=FULL); }
 function when(ts){
@@ -443,6 +485,7 @@ function resolveNames(){
   const me=backend&&backend.me;
   for(const c of comments){ names[c.by]=c.by===me?"You":(c.name||"Someone"); avatars[c.by]=c.photo||""; }
   for(const k in ticks){ const v=ticks[k]; if(v&&v.by){ names[v.by]=v.by===me?"You":(v.name||"Someone"); if(v.photo) avatars[v.by]=v.photo; } }
+  for(const m of meetings){ if(m.by) names[m.by]=m.by===me?"You":(m.byName||"Someone"); }
 }
 const avatars={};
 function avatar(id){
@@ -461,7 +504,7 @@ function breadcrumb(id){
   while(n&&n.id!=="root"){ parts.unshift(pretty(n.title)); n=n.parent; }
   return parts.join(" \u203a ");
 }
-function notifyComment(id,text){
+function sendNotification(section,message){
   const ECFG=window.TRACKER_EMAILJS;
   if(!ECFG||!ECFG.publicKey||!window.emailjs||!me) return;
   const recipients=NOTIFY_EMAILS.filter(e=>e.toLowerCase()!==(me.email||"").toLowerCase());
@@ -470,12 +513,13 @@ function notifyComment(id,text){
       to_email: to,
       from_name: me.name||me.email,
       project: project.name,
-      section: breadcrumb(id),
-      message: text,
+      section,
+      message,
       link: location.href
-    }).catch(err=>console.warn("comment email not sent:",err));
+    }).catch(err=>console.warn("email not sent:",err));
   }
 }
+function notifyComment(id,text){ sendNotification(breadcrumb(id),text); }
 function renderPanel(id,first){
   const e=els.get(id), list=comments.filter(c=>c.node===id);
   let box=e.panel.querySelector(".clist");
@@ -531,6 +575,66 @@ function toggleExpand(id){
 }
 function showNote(t){ const n=$("#note"); n.textContent=t; n.hidden=false; }
 
+/* ------------------------------------------------------------------ meetings */
+function fmtWhen(at){
+  return new Date(at).toLocaleString(undefined,{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+}
+function notifyMeetingProposed(m){ sendNotification("Meeting",fmtWhen(m.at)+" proposed"+(m.note?" — "+m.note:"")); }
+function notifyMeetingResponse(m){ sendNotification("Meeting",(m.status==="confirmed"?"Confirmed: ":"Declined: ")+fmtWhen(m.at)+(m.note?" — "+m.note:"")); }
+function mkBtn(text,fn){ const b=document.createElement("button"); b.type="button"; b.className="tbtn"; b.textContent=text; b.onclick=fn; return b; }
+async function respondMeeting(m,status){
+  try{ await backend.updateMeeting(m.id,{status,respondedBy:backend.me,respondedAt:Date.now()}); notifyMeetingResponse({...m,status}); }
+  catch(err){ showNote("That response could not be saved."); }
+}
+async function removeMeeting(id){
+  try{ await backend.deleteMeeting(id); }
+  catch(err){ showNote("The meeting could not be removed."); }
+}
+function downloadICS(m){
+  const dt=ms=>new Date(ms).toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+  const start=m.at, end=m.at+(parseInt(m.duration,10)||30)*60000;
+  const esc=s=>(s||"").replace(/\n/g," ").replace(/[,;]/g,"\\$&");
+  const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//"+project.name+" Tracker//EN","BEGIN:VEVENT",
+    "UID:"+m.id+"@research-tracker","DTSTAMP:"+dt(Date.now()),"DTSTART:"+dt(start),"DTEND:"+dt(end),
+    "SUMMARY:"+esc(project.name+" meeting")]
+    .concat(m.note?["DESCRIPTION:"+esc(m.note)]:[])
+    .concat(["END:VEVENT","END:VCALENDAR"]).join("\r\n");
+  const blob=new Blob([ics],{type:"text/calendar"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="meeting.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function renderMeetings(){
+  const ul=$("#mlist"); if(!ul) return; ul.textContent="";
+  const sorted=[...meetings].sort((a,b)=>a.at-b.at);
+  if(!sorted.length){ const li=document.createElement("li"); li.className="empty"; li.style.display="block"; li.textContent="No meetings proposed yet."; ul.appendChild(li); return; }
+  for(const m of sorted){
+    const li=document.createElement("li"); li.className="mcard"+(m.at<Date.now()?" past":"");
+    const when=document.createElement("div"); when.className="mwhen"; when.textContent=fmtWhen(m.at);
+    const body=document.createElement("div"); body.className="mbody";
+    const head=document.createElement("div"); head.className="mheadline";
+    const status=document.createElement("span");
+    status.className="chip "+(m.status==="confirmed"?"ok":m.status==="declined"?"no":"pending");
+    status.textContent=m.status==="confirmed"?"Confirmed":m.status==="declined"?"Declined":"Proposed";
+    const by=document.createElement("span"); by.className="mby"; by.textContent="by "+(names[m.by]||m.byName||"…");
+    head.append(status,by); body.appendChild(head);
+    if(m.note){ const note=document.createElement("div"); note.className="mnote"; note.textContent=m.note; body.appendChild(note); }
+    if(backend&&backend.canWrite){
+      const actions=document.createElement("div"); actions.className="mactions";
+      const iAmProposer=m.by===backend.me;
+      if(m.status==="proposed"){
+        if(iAmProposer) actions.appendChild(mkBtn("Cancel",()=>removeMeeting(m.id)));
+        else { actions.appendChild(mkBtn("Confirm",()=>respondMeeting(m,"confirmed"))); actions.appendChild(mkBtn("Decline",()=>respondMeeting(m,"declined"))); }
+      } else {
+        if(m.status==="confirmed") actions.appendChild(mkBtn("Add to calendar",()=>downloadICS(m)));
+        actions.appendChild(mkBtn("Remove",()=>removeMeeting(m.id)));
+      }
+      body.appendChild(actions);
+    }
+    li.append(when,body); ul.appendChild(li);
+  }
+}
+
 function renderActivity(){
   const ul=$("#activity");
   const items=[...comments.map(c=>({k:"c",at:c.at,by:c.by,node:c.node,text:c.text})),
@@ -569,6 +673,22 @@ document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ filter=b.dat
 $("#q").addEventListener("input",e=>{ query=e.target.value; refresh(); });
 $("#expandAll").onclick=()=>{ for(const n of nodes.values()) if(n.children.length&&n.id!=="root") expanded.add(n.id); LS.set("rt:expanded:"+project.id,[...expanded]); refresh(); };
 $("#collapseAll").onclick=()=>{ expanded=new Set(tree.children.map(p=>p.id)); LS.set("rt:expanded:"+project.id,[...expanded]); refresh(); };
+$("#meetingsToggle").onclick=()=>{
+  const panel=$("#meetingsPanel"), open=panel.hidden;
+  panel.hidden=!open; $("#meetingsToggle").setAttribute("aria-expanded",String(open));
+};
+$("#mform").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  if(!backend||!backend.canWrite) return;
+  const whenEl=$("#mwhen"), durEl=$("#mdur"), noteEl=$("#mnote"), btn=ev.target.querySelector("button[type=submit]");
+  const at=whenEl.value?new Date(whenEl.value).getTime():NaN;
+  if(!whenEl.value||isNaN(at)){ showNote("Pick a date and time for the meeting."); return; }
+  const m={at,duration:parseInt(durEl.value,10)||30,note:noteEl.value.trim(),status:"proposed",by:backend.me,byName:me?me.name:"You",createdAt:Date.now()};
+  btn.disabled=true;
+  try{ await backend.addMeeting(m); notifyMeetingProposed(m); whenEl.value=""; noteEl.value=""; }
+  catch(err){ showNote("The meeting could not be proposed. Check that you are signed in with an account on the access list."); }
+  btn.disabled=false;
+});
 
 function setStatus(kind,text){ const s=$("#status"); s.className="status "+kind; $("#statusText").textContent=text; }
 
@@ -578,7 +698,7 @@ const NOTIFY_EMAILS=["musharafqazi@physics.iitm.ac.in","garani@physics.iitm.ac.i
 if(window.TRACKER_EMAILJS&&window.TRACKER_EMAILJS.publicKey&&window.emailjs) emailjs.init({publicKey:window.TRACKER_EMAILJS.publicKey});
 function connect(){
   if(backend&&backend.stop) backend.stop();
-  ticks={}; comments=[]; names={};
+  ticks={}; comments=[]; meetings=[]; names={};
   if(fs&&me){
     backend=firebaseBackend(project.id,fs,me);
     setStatus("live","Shared · signed in as "+me.name);
@@ -588,7 +708,7 @@ function connect(){
     backend=localBackend(project.id);
     setStatus("local","Saved in this browser only (shared database not set up yet)");
   }
-  backend.subscribe(t=>{ticks={...t};refresh();}, c=>{comments=c.slice();refresh();},
+  backend.subscribe(t=>{ticks={...t};refresh();}, c=>{comments=c.slice();refresh();}, m=>{meetings=m.slice();refresh();},
     err=>{ if(err&&err.code==="permission-denied"){ showNote("Your Google account ("+(me&&me.email)+") is not on this tracker's access list. Ask the owner to add it in firestore.rules."); setStatus("ro","No access for this account"); }
            else setStatus("ro","Live updates stopped. Reload the page to reconnect."); });
   refresh();
