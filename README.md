@@ -113,3 +113,59 @@ rest of the app. Setup, once:
 
 If the outline in `index.html` is ever restructured, update the matching `OUTLINE` copy at the top of
 `scripts/weekly-digest.js` too, so the digest's item names stay readable instead of showing raw ids.
+
+## Workflow stage per item
+
+Each leaf item has a stage dropdown: **Derive → Implement → Test → Produce artifact → Interpret → Guide
+review → Approved**. Moving it to Approved also ticks the item (it's the same "done" signal used for the
+progress bars); moving it anywhere else doesn't untick it automatically, so ticking by hand still works
+exactly as before if you never touch the stage dropdown.
+
+## Review actions
+
+Next to the stage dropdown, each item has three buttons: **Approve** (marks it Approved and ticks it),
+**Request changes** (prompts for a note, flags the item, and un-ticks it if it had been approved), and
+**Needs discussion** (prompts for a note, flags it without affecting the tick). A flagged item shows a
+coloured chip with the note; a **Clear** button removes the flag once it's resolved.
+
+## Blockers
+
+The **+ Blocked** button on an item lets either of you flag it as stuck, with a short reason. It shows as
+a red chip on the item and feeds the Current blockers list in the guide view below.
+
+## Decisions and Questions
+
+Two small toolbar panels for things that aren't tied to one outline item: **Decisions** for things that
+were decided (with a "mark recorded" toggle once it's reflected in the writeup), and **Questions** for
+things to raise next time you meet (with a "mark answered" toggle). Both are visible to both of you and
+feed the guide view below.
+
+## Convert comment to task
+
+Under any comment on a leaf item, a **→ Task** button jumps to that item and opens its due-date picker —
+a quick way to turn "can you check this?" into something with a deadline.
+
+## For your guide (guide view)
+
+The **For your guide** toolbar button opens a focused summary instead of the full tree: items awaiting
+review (stage = Guide review, not yet approved), open decisions, current blockers, results produced since
+the last confirmed meeting, overdue milestones, open questions, items revised in the last 7 days, and
+items with an open "changes requested" flag. This is meant to be the one view your guide actually needs —
+they shouldn't have to scan the whole outline to know what needs their attention.
+
+## Daily research log
+
+The **Daily log** panel is a quick end-of-day entry: what you intended to do, what you actually did,
+files/results produced, what failed, what you learned, your current blocker, and the first action for
+tomorrow. Entries are listed newest-first and collapse to just the date until you click one open.
+
+## What's deferred (Phase 2)
+
+A few things from the original request are bigger, separate efforts and weren't built in this round:
+a redesigned opening screen that answers "what are my 3 actions today / what's blocked / what changed
+this week" in one glance; tiered email notifications (immediate vs. daily digest vs. weekly vs. "review
+unanswered for N days" vs. deadline warnings — right now every comment/meeting still emails immediately,
+and the Monday digest above is the only batched one); a Theory/Numerics "progressing together" skew
+indicator; and linking manuscript claims to the evidence items they rely on, to flag stale evidence. The
+data this round adds (stages, review flags, decisions, questions, logs) is what all of those would be
+built on top of, so they're a natural next step rather than a rewrite.

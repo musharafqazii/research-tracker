@@ -13,7 +13,7 @@
 :root{
   --bg:#f5f6f8; --surface:#ffffff; --sunk:#eceef2; --ink:#16192a; --muted:#5d6377; --faint:#9399aa; --rule:#dde0e7;
   --accent:#3346b8; --accent-soft:#e6e9fb; --done:#1b8a57; --done-soft:#e3f4ea; --part:#b36b00; --part-soft:#fbf0dd;
-  --danger:#b3372e;
+  --danger:#b3372e; --danger-soft:#fbe6e3;
   --f-display:"Literata", "Iowan Old Style", Georgia, serif;
   --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -21,11 +21,11 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#12141c; --surface:#1a1d28; --sunk:#222634; --ink:#e7e9f1; --muted:#a2a8bb; --faint:#6f7589; --rule:#2c3142;
   --accent:#8f9dff; --accent-soft:#262c4f; --done:#4cc98a; --done-soft:#17322a; --part:#f0b14a; --part-soft:#3a2d16;
-  --danger:#ff8a80; color-scheme:dark}}
+  --danger:#ff8a80; --danger-soft:#3a1f1c; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#12141c; --surface:#1a1d28; --sunk:#222634; --ink:#e7e9f1; --muted:#a2a8bb; --faint:#6f7589; --rule:#2c3142;
   --accent:#8f9dff; --accent-soft:#262c4f; --done:#4cc98a; --done-soft:#17322a; --part:#f0b14a; --part-soft:#3a2d16;
-  --danger:#ff8a80; color-scheme:dark}
+  --danger:#ff8a80; --danger-soft:#3a1f1c; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);margin:0}
 .wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:20px 60px}
@@ -126,6 +126,53 @@ ul.kids{list-style:none;margin:0;padding:0}
 .kids .kids::before{content:"";position:absolute;left:calc(25px + var(--ind,0px));top:0;bottom:6px;width:1px;background:var(--rule)}
 @media (max-width:560px){.row{grid-template-columns:22px 24px minmax(0,1fr)}.meta{grid-column:3;justify-content:flex-start}.mini{display:none}}
 
+/* workflow: stage, review actions, blocked */
+.workflow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.stagesel{font:inherit;font-size:12px;padding:5px 7px;border-radius:6px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.reviewbtn,.blockedbtn,.taskbtn{border:1px solid var(--rule);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--muted)}
+.reviewbtn:hover,.blockedbtn:hover,.taskbtn:hover{color:var(--ink);background:var(--sunk)}
+.reviewbtn.approve{color:var(--done);border-color:var(--done)}
+.reviewbtn.changes{color:var(--danger);border-color:var(--danger)}
+.reviewbtn.discuss{color:var(--part);border-color:var(--part)}
+.blockedbtn.active{background:var(--danger-soft);color:var(--danger);border-color:var(--danger)}
+.reviewnote{font:inherit;font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);width:220px;min-height:34px;resize:vertical}
+.chip.changes{background:var(--danger-soft);color:var(--danger)}
+.chip.discuss{background:var(--part-soft);color:var(--part)}
+.chip.approved{background:var(--done-soft);color:var(--done)}
+.chip.blocked{background:var(--danger-soft);color:var(--danger)}
+.chipnote{font-size:12px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+
+/* side panels: decisions, questions, log, guide view (share the .meetings shell) */
+.panel-list{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:10px}
+.panel-card{padding:10px 12px;border-radius:8px;background:var(--sunk);font-size:13px}
+.panel-card .ph{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.panel-card .pby{color:var(--faint);font-size:12px;white-space:nowrap}
+.panel-card .ptxt{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:3px}
+.panel-card.resolved{opacity:.55}
+.panel-form{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.panel-form textarea{flex:1;min-width:200px;min-height:38px;max-height:140px;resize:vertical;font:inherit;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.logform{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.logform label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.logform label span{font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.logform textarea{font:inherit;font-size:13px;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink);min-height:50px;resize:vertical}
+.logform .full{grid-column:1/-1}
+@media (max-width:560px){.logform{grid-template-columns:1fr}}
+.logcard summary{cursor:pointer;font-weight:600;list-style:none}
+.logcard summary::-webkit-details-marker{display:none}
+.logcard summary::before{content:"▸ ";color:var(--faint)}
+.logcard[open] summary::before{content:"▾ "}
+.logcard{padding:10px 12px;border-radius:8px;background:var(--sunk);font-size:13px;margin-bottom:10px}
+.logcard dl{margin:8px 0 0;display:flex;flex-direction:column;gap:6px}
+.logcard dt{font:600 11px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.logcard dd{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.guidelist h4{font:600 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.guidelist h4:first-child{margin-top:0}
+.guidelist ul{list-style:none;margin:0 0 4px;padding:0;display:flex;flex-direction:column;gap:6px}
+.guidelist li{font-size:13px;display:flex;flex-direction:column}
+.guidelist button{color:var(--accent);text-align:left;font-weight:600}
+.guidelist .what{color:var(--muted);font-size:12px}
+
 /* comments */
 .cpanel{margin:2px 14px 10px calc(60px + var(--ind,0px));border-left:2px solid var(--accent-soft);padding:4px 0 4px 12px}
 .clist{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
@@ -136,6 +183,7 @@ ul.kids{list-style:none;margin:0;padding:0}
 .c .txt{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
 .c .del{font-size:12px;color:var(--faint)} .c .del:hover{color:var(--danger)}
 .c .del.confirm{color:var(--danger);font-weight:600}
+.c .task{font-size:12px;color:var(--faint)} .c .task:hover{color:var(--accent)}
 .cform{display:flex;gap:8px;align-items:flex-end}
 .cform textarea{flex:1;min-width:0;min-height:38px;max-height:180px;resize:vertical;font:inherit;font-size:14px;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
 .post{font-size:13px;font-weight:600;background:var(--accent);color:var(--surface);padding:8px 14px;border-radius:8px}
@@ -210,6 +258,10 @@ mjx-container{font-size:105%!important}
     <button class="tbtn" id="expandAll">Expand all</button>
     <button class="tbtn" id="collapseAll">Collapse all</button>
     <button class="tbtn" id="meetingsToggle" aria-expanded="false">Meetings</button>
+    <button class="tbtn" id="guideviewToggle" aria-expanded="false">For your guide</button>
+    <button class="tbtn" id="decisionsToggle" aria-expanded="false">Decisions</button>
+    <button class="tbtn" id="questionsToggle" aria-expanded="false">Questions</button>
+    <button class="tbtn" id="logToggle" aria-expanded="false">Daily log</button>
     <button class="tbtn" id="exportBtn">Export</button>
   </div>
   <section class="meetings" id="meetingsPanel" hidden aria-label="Meetings">
@@ -223,6 +275,37 @@ mjx-container{font-size:105%!important}
       </select>
       <textarea id="mnote" rows="2" placeholder="Agenda / notes (optional)" aria-label="Agenda or notes" maxlength="800"></textarea>
       <button class="post" type="submit">Propose</button>
+    </form>
+  </section>
+  <section class="meetings guidelist" id="guideviewPanel" hidden aria-label="For your guide"></section>
+  <section class="meetings" id="decisionsPanel" hidden aria-label="Decisions">
+    <h3>Decisions</h3>
+    <ul class="panel-list" id="decisionsList"></ul>
+    <form class="panel-form" id="decisionForm">
+      <textarea id="decisionText" rows="2" placeholder="Record a decision that was made…" aria-label="Decision text" maxlength="500"></textarea>
+      <button class="post" type="submit">Record</button>
+    </form>
+  </section>
+  <section class="meetings" id="questionsPanel" hidden aria-label="Questions for next meeting">
+    <h3>Questions for next meeting</h3>
+    <ul class="panel-list" id="questionsList"></ul>
+    <form class="panel-form" id="questionForm">
+      <textarea id="questionText" rows="2" placeholder="A question to raise next time…" aria-label="Question text" maxlength="500"></textarea>
+      <button class="post" type="submit">Add</button>
+    </form>
+  </section>
+  <section class="meetings" id="logPanel" hidden aria-label="Daily research log">
+    <h3>Daily research log</h3>
+    <div class="panel-list" id="logList"></div>
+    <form class="logform" id="logForm">
+      <label><span>Intended today</span><textarea id="logIntended" maxlength="400"></textarea></label>
+      <label><span>Actually did</span><textarea id="logActual" maxlength="400"></textarea></label>
+      <label><span>Files / results produced</span><textarea id="logProduced" maxlength="300"></textarea></label>
+      <label><span>What failed</span><textarea id="logFailed" maxlength="300"></textarea></label>
+      <label><span>What I learned</span><textarea id="logLearned" maxlength="300"></textarea></label>
+      <label><span>Current blocker</span><textarea id="logBlocker" maxlength="300"></textarea></label>
+      <label class="full"><span>First action tomorrow</span><textarea id="logTomorrow" maxlength="300"></textarea></label>
+      <div class="full"><button class="post" type="submit">Save today's entry</button></div>
     </form>
   </section>
   <div class="layout">
@@ -312,19 +395,35 @@ const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.par
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 function localBackend(pid){
-  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments", kM="rt:"+pid+":meetings", kD="rt:"+pid+":dues", kL="rt:"+pid+":links";
-  let onT=()=>{}, onC=()=>{}, onM=()=>{}, onD=()=>{}, onL=()=>{};
+  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments", kM="rt:"+pid+":meetings", kD="rt:"+pid+":dues", kL="rt:"+pid+":links",
+        kS="rt:"+pid+":stages", kR="rt:"+pid+":review", kB="rt:"+pid+":blocked",
+        kDec="rt:"+pid+":decisions", kQ="rt:"+pid+":questions", kLog="rt:"+pid+":logs";
+  let h={};
   return {
     mode:"local", me:"local", canWrite:true,
-    subscribe(t,c,m,d,l){onT=t;onC=c;onM=m;onD=d;onL=l;t(LS.get(kT,{}));c(LS.get(kC,[]));m(LS.get(kM,[]));d(LS.get(kD,{}));l(LS.get(kL,{}));},
-    async setTicks(patch){const t=LS.get(kT,{});for(const k in patch){if(patch[k])t[k]=patch[k];else delete t[k];}LS.set(kT,t);onT(t);},
-    async addComment(c){const l=LS.get(kC,[]);l.push({...c,id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kC,l);onC(l);},
-    async deleteComment(id){const l=LS.get(kC,[]).filter(x=>x.id!==id);LS.set(kC,l);onC(l);},
-    async addMeeting(m){const l=LS.get(kM,[]);l.push({...m,id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kM,l);onM(l);},
-    async updateMeeting(id,patch){const l=LS.get(kM,[]).map(x=>x.id===id?{...x,...patch}:x);LS.set(kM,l);onM(l);},
-    async deleteMeeting(id){const l=LS.get(kM,[]).filter(x=>x.id!==id);LS.set(kM,l);onM(l);},
-    async setDue(id,ms){const d=LS.get(kD,{});if(ms)d[id]=ms;else delete d[id];LS.set(kD,d);onD(d);},
-    async setLink(id,url){const l=LS.get(kL,{});if(url)l[id]=url;else delete l[id];LS.set(kL,l);onL(l);}
+    subscribe(handlers){
+      h=handlers;
+      h.onTicks(LS.get(kT,{})); h.onComments(LS.get(kC,[])); h.onMeetings(LS.get(kM,[]));
+      h.onDues(LS.get(kD,{})); h.onLinks(LS.get(kL,{}));
+      h.onStages(LS.get(kS,{})); h.onReview(LS.get(kR,{})); h.onBlocked(LS.get(kB,{}));
+      h.onDecisions(LS.get(kDec,[])); h.onQuestions(LS.get(kQ,[])); h.onLogs(LS.get(kLog,[]));
+    },
+    async setTicks(patch){const t=LS.get(kT,{});for(const k in patch){if(patch[k])t[k]=patch[k];else delete t[k];}LS.set(kT,t);h.onTicks(t);},
+    async addComment(c){const l=LS.get(kC,[]);l.push({...c,id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kC,l);h.onComments(l);},
+    async deleteComment(id){const l=LS.get(kC,[]).filter(x=>x.id!==id);LS.set(kC,l);h.onComments(l);},
+    async addMeeting(m){const l=LS.get(kM,[]);l.push({...m,id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kM,l);h.onMeetings(l);},
+    async updateMeeting(id,patch){const l=LS.get(kM,[]).map(x=>x.id===id?{...x,...patch}:x);LS.set(kM,l);h.onMeetings(l);},
+    async deleteMeeting(id){const l=LS.get(kM,[]).filter(x=>x.id!==id);LS.set(kM,l);h.onMeetings(l);},
+    async setDue(id,ms){const d=LS.get(kD,{});if(ms)d[id]=ms;else delete d[id];LS.set(kD,d);h.onDues(d);},
+    async setLink(id,url){const l=LS.get(kL,{});if(url)l[id]=url;else delete l[id];LS.set(kL,l);h.onLinks(l);},
+    async setStage(id,idx,by){const s=LS.get(kS,{});s[id]={idx,by,at:Date.now()};LS.set(kS,s);h.onStages(s);},
+    async setReview(id,status,note,by){const r=LS.get(kR,{});if(status)r[id]={status,note:note||"",by,at:Date.now()};else delete r[id];LS.set(kR,r);h.onReview(r);},
+    async setBlocked(id,reason,by){const b=LS.get(kB,{});if(reason)b[id]={reason,by,at:Date.now()};else delete b[id];LS.set(kB,b);h.onBlocked(b);},
+    async addDecision(d){const l=LS.get(kDec,[]);l.push({...d,id:"d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kDec,l);h.onDecisions(l);},
+    async updateDecision(id,patch){const l=LS.get(kDec,[]).map(x=>x.id===id?{...x,...patch}:x);LS.set(kDec,l);h.onDecisions(l);},
+    async addQuestion(q){const l=LS.get(kQ,[]);l.push({...q,id:"q"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kQ,l);h.onQuestions(l);},
+    async updateQuestion(id,patch){const l=LS.get(kQ,[]).map(x=>x.id===id?{...x,...patch}:x);LS.set(kQ,l);h.onQuestions(l);},
+    async addLog(e){const l=LS.get(kLog,[]);l.push({...e,id:"l"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kLog,l);h.onLogs(l);}
   };
 }
 
@@ -332,14 +431,24 @@ function firebaseBackend(pid,fs,me){
   const ref=fs.collection("trackers").doc(pid);
   const col=ref.collection("comments");
   const mcol=ref.collection("meetings");
+  const dcol=ref.collection("decisions");
+  const qcol=ref.collection("questions");
+  const lcol=ref.collection("logs");
   const del=firebase.firestore.FieldValue.delete();
   let unsub=[];
   return {
     mode:"live", me:me.uid, canWrite:true,
-    subscribe(onT,onC,onM,onD,onL,onErr){
-      unsub.push(ref.onSnapshot(s=>{ const data=(s.exists&&s.data())||{}; onT(data.ticks||{}); onD(data.dues||{}); onL(data.links||{}); },onErr));
-      unsub.push(col.orderBy("at").onSnapshot(s=>onC(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
-      unsub.push(mcol.orderBy("at").onSnapshot(s=>onM(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
+    subscribe(h){
+      unsub.push(ref.onSnapshot(s=>{
+        const data=(s.exists&&s.data())||{};
+        h.onTicks(data.ticks||{}); h.onDues(data.dues||{}); h.onLinks(data.links||{});
+        h.onStages(data.stages||{}); h.onReview(data.review||{}); h.onBlocked(data.blocked||{});
+      },h.onError));
+      unsub.push(col.orderBy("at").onSnapshot(s=>h.onComments(s.docs.map(d=>({id:d.id,...d.data()}))),h.onError));
+      unsub.push(mcol.orderBy("at").onSnapshot(s=>h.onMeetings(s.docs.map(d=>({id:d.id,...d.data()}))),h.onError));
+      unsub.push(dcol.orderBy("at").onSnapshot(s=>h.onDecisions(s.docs.map(d=>({id:d.id,...d.data()}))),h.onError));
+      unsub.push(qcol.orderBy("at").onSnapshot(s=>h.onQuestions(s.docs.map(d=>({id:d.id,...d.data()}))),h.onError));
+      unsub.push(lcol.orderBy("at").onSnapshot(s=>h.onLogs(s.docs.map(d=>({id:d.id,...d.data()}))),h.onError));
     },
     setTicks(patch){
       const t={}; for(const k in patch) t[k]=patch[k]?{...patch[k],name:me.name,photo:me.photo}:del;
@@ -352,6 +461,14 @@ function firebaseBackend(pid,fs,me){
     deleteMeeting(id){return mcol.doc(id).delete();},
     setDue(id,ms){return ref.set({dues:{[id]:ms?ms:del}},{merge:true});},
     setLink(id,url){return ref.set({links:{[id]:url?url:del}},{merge:true});},
+    setStage(id,idx){return ref.set({stages:{[id]:{idx,by:me.uid,name:me.name,at:Date.now()}}},{merge:true});},
+    setReview(id,status,note){return ref.set({review:{[id]:status?{status,note:note||"",by:me.uid,name:me.name,at:Date.now()}:del}},{merge:true});},
+    setBlocked(id,reason){return ref.set({blocked:{[id]:reason?{reason,by:me.uid,name:me.name,at:Date.now()}:del}},{merge:true});},
+    addDecision(d){return dcol.add({...d,by:me.uid,name:me.name});},
+    updateDecision(id,patch){return dcol.doc(id).update(patch);},
+    addQuestion(q){return qcol.add({...q,by:me.uid,name:me.name});},
+    updateQuestion(id,patch){return qcol.doc(id).update(patch);},
+    addLog(e){return lcol.add({...e,by:me.uid,name:me.name});},
     stop(){unsub.forEach(u=>u());unsub=[];}
   };
 }
@@ -359,6 +476,8 @@ function firebaseBackend(pid,fs,me){
 /* ------------------------------------------------------------------ state */
 let project=PROJECTS[0], tree=null, nodes=new Map(), backend=null;
 let ticks={}, comments=[], meetings=[], dues={}, links={}, names={}, filter="all", query="";
+let stages={}, review={}, blocked={}, decisions=[], questions=[], logs=[];
+const STAGES=["Derive","Implement","Test","Produce artifact","Interpret","Guide review","Approved"];
 let expanded=new Set(LS.get("rt:expanded:"+project.id,null)||[]);
 const openPanels=new Set();
 const els=new Map();   // node id -> {li,row,cb,pct,mini,cm,cmN,cmSub,panel,list,kids,tw}
@@ -447,8 +566,62 @@ function makeRow(n,isPillar){
     linkInput.onblur=saveLink;
     meta.append(linkA,linkEdit,linkBtn,linkInput);
   }
+  let stageSel=null, reviewApprove=null, reviewChanges=null, reviewDiscuss=null, reviewNote=null, reviewSubmit=null,
+      reviewCancel=null, reviewChip=null, reviewChipNote=null, reviewClear=null,
+      blockedBtn=null, blockedInput=null, blockedClear=null;
+  if(!isPillar&&!n.children.length){
+    const wf=document.createElement("div"); wf.className="workflow";
+    stageSel=document.createElement("select"); stageSel.className="stagesel";
+    stageSel.setAttribute("aria-label","Workflow stage for "+pretty(n.title));
+    STAGES.forEach((s,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=s; stageSel.appendChild(o); });
+    stageSel.onchange=async()=>{
+      const idx=parseInt(stageSel.value,10); if(!backend||!backend.canWrite) return;
+      try{ await backend.setStage(n.id,idx,backend.me);
+        if(idx===STAGES.length-1&&!ticks[n.id]) await backend.setTicks({[n.id]:{by:backend.me,at:Date.now()}}); }
+      catch(err){ showNote("The stage could not be saved."); }
+    };
+    reviewApprove=document.createElement("button"); reviewApprove.type="button"; reviewApprove.className="reviewbtn approve"; reviewApprove.textContent="Approve";
+    reviewChanges=document.createElement("button"); reviewChanges.type="button"; reviewChanges.className="reviewbtn changes"; reviewChanges.textContent="Request changes";
+    reviewDiscuss=document.createElement("button"); reviewDiscuss.type="button"; reviewDiscuss.className="reviewbtn discuss"; reviewDiscuss.textContent="Needs discussion";
+    reviewNote=document.createElement("textarea"); reviewNote.className="reviewnote"; reviewNote.hidden=true; reviewNote.placeholder="Optional note…";
+    reviewSubmit=document.createElement("button"); reviewSubmit.type="button"; reviewSubmit.className="tbtn"; reviewSubmit.textContent="Save"; reviewSubmit.hidden=true;
+    reviewCancel=document.createElement("button"); reviewCancel.type="button"; reviewCancel.className="tbtn"; reviewCancel.textContent="Cancel"; reviewCancel.hidden=true;
+    reviewChip=document.createElement("span"); reviewChip.className="chip"; reviewChip.hidden=true;
+    reviewClear=document.createElement("button"); reviewClear.type="button"; reviewClear.className="tbtn"; reviewClear.textContent="Clear"; reviewClear.hidden=true;
+    let pendingStatus=null;
+    function openReviewNote(status){ pendingStatus=status; reviewNote.hidden=false; reviewSubmit.hidden=false; reviewCancel.hidden=false; reviewNote.focus(); }
+    reviewApprove.onclick=async()=>{ if(!backend||!backend.canWrite) return;
+      try{ await backend.setReview(n.id,"approved","",backend.me); await backend.setStage(n.id,STAGES.length-1,backend.me);
+        if(!ticks[n.id]) await backend.setTicks({[n.id]:{by:backend.me,at:Date.now()}}); }
+      catch(err){ showNote("That could not be saved."); } };
+    reviewChanges.onclick=()=>openReviewNote("changes_requested");
+    reviewDiscuss.onclick=()=>openReviewNote("needs_discussion");
+    reviewCancel.onclick=()=>{ reviewNote.hidden=true; reviewSubmit.hidden=true; reviewCancel.hidden=true; reviewNote.value=""; };
+    reviewSubmit.onclick=async()=>{ if(!backend||!backend.canWrite) return; const note=reviewNote.value.trim();
+      reviewNote.hidden=true; reviewSubmit.hidden=true; reviewCancel.hidden=true;
+      try{ await backend.setReview(n.id,pendingStatus,note,backend.me);
+        if(pendingStatus==="changes_requested"&&ticks[n.id]) await backend.setTicks({[n.id]:null}); }
+      catch(err){ showNote("That could not be saved."); } reviewNote.value=""; };
+    reviewClear.onclick=async()=>{ if(!backend||!backend.canWrite) return;
+      try{ await backend.setReview(n.id,null,"",backend.me); }catch(err){ showNote("That could not be cleared."); } };
+    blockedBtn=document.createElement("button"); blockedBtn.type="button"; blockedBtn.className="blockedbtn"; blockedBtn.textContent="+ Blocked";
+    blockedInput=document.createElement("textarea"); blockedInput.className="reviewnote"; blockedInput.hidden=true; blockedInput.placeholder="What's blocking this?";
+    blockedClear=document.createElement("button"); blockedClear.type="button"; blockedClear.className="tbtn"; blockedClear.textContent="Unblock"; blockedClear.hidden=true;
+    blockedBtn.onclick=()=>{ if(blocked[n.id]){ return; } blockedInput.hidden=!blockedInput.hidden; if(!blockedInput.hidden) blockedInput.focus(); };
+    blockedInput.onkeydown=ev=>{ if(ev.key==="Enter"&&(ev.metaKey||ev.ctrlKey)){ev.preventDefault();saveBlocked();} if(ev.key==="Escape"){blockedInput.hidden=true;} };
+    async function saveBlocked(){ const v=blockedInput.value.trim(); blockedInput.hidden=true; if(!backend||!backend.canWrite||!v) return;
+      try{ await backend.setBlocked(n.id,v,backend.me); }catch(err){ showNote("That could not be saved."); } }
+    blockedInput.onblur=saveBlocked;
+    blockedClear.onclick=async()=>{ if(!backend||!backend.canWrite) return;
+      try{ await backend.setBlocked(n.id,null,backend.me); }catch(err){ showNote("That could not be cleared."); } };
+    wf.append(stageSel,reviewApprove,reviewChanges,reviewDiscuss,blockedBtn,reviewChip,reviewClear,blockedClear,reviewNote,reviewSubmit,reviewCancel,blockedInput);
+    tt.appendChild(wf);
+    reviewChipNote=document.createElement("div"); reviewChipNote.className="chipnote"; reviewChipNote.hidden=true; tt.appendChild(reviewChipNote);
+  }
   row.append(tw,cb,tt,meta);
-  els.set(n.id,{row,cb,pct,mini:mini.firstChild,cm,cmN:cm.querySelector(".n"),cmSub:cm.querySelector(".sub"),tw,chip,who,wrap,dueChip,dueInput,dueClear,linkA,linkEdit,linkBtn,linkInput});
+  els.set(n.id,{row,cb,pct,mini:mini.firstChild,cm,cmN:cm.querySelector(".n"),cmSub:cm.querySelector(".sub"),tw,chip,who,wrap,
+    dueChip,dueInput,dueClear,linkA,linkEdit,linkBtn,linkInput,
+    stageSel,reviewApprove,reviewChanges,reviewDiscuss,reviewChip,reviewChipNote,reviewClear,blockedBtn,blockedClear});
   wrap.appendChild(row);
   const panel=document.createElement("div"); panel.className="cpanel"; panel.hidden=true;
   panel.style.setProperty("--ind",(isPillar?0:(n.depth-1)*22)+"px");
@@ -522,6 +695,24 @@ function refresh(){
       e.linkA.hidden=!link; if(link) e.linkA.href=link;
       e.linkEdit.hidden=!link||ro; e.linkBtn.hidden=!!link||ro;
     }
+    if(leaf&&e.stageSel){
+      const st=stages[id]; e.stageSel.value=st?st.idx:0; e.stageSel.disabled=ro;
+      const rv=review[id];
+      e.reviewApprove.hidden=ro; e.reviewChanges.hidden=ro; e.reviewDiscuss.hidden=ro;
+      if(rv){
+        e.reviewChip.hidden=false;
+        e.reviewChip.className="chip "+(rv.status==="changes_requested"?"changes":rv.status==="needs_discussion"?"discuss":"approved");
+        e.reviewChip.textContent=rv.status==="changes_requested"?"Changes requested":rv.status==="needs_discussion"?"Needs discussion":"Approved";
+        e.reviewChip.title="by "+(names[rv.by]||"…")+" · "+when(rv.at);
+        e.reviewClear.hidden=ro;
+        if(rv.note){ e.reviewChipNote.hidden=false; e.reviewChipNote.textContent=rv.note; } else e.reviewChipNote.hidden=true;
+      } else { e.reviewChip.hidden=true; e.reviewClear.hidden=true; e.reviewChipNote.hidden=true; }
+      const bl=blocked[id];
+      if(bl){ e.blockedBtn.textContent="Blocked: "+(bl.reason.length>40?bl.reason.slice(0,40)+"…":bl.reason); e.blockedBtn.className="blockedbtn active";
+        e.blockedBtn.title="by "+(names[bl.by]||"…")+" · "+when(bl.at); e.blockedClear.hidden=ro; }
+      else { e.blockedBtn.textContent="+ Blocked"; e.blockedBtn.className="blockedbtn"; e.blockedClear.hidden=true; }
+      e.blockedBtn.hidden=ro&&!bl;
+    }
     if(e.kids&&e.tw&&n.depth>0){ const open=filtering?true:expanded.has(id); e.kids.hidden=!open; e.tw.setAttribute("aria-expanded",open); }
     if(openPanels.has(id)) renderPanel(id);
   }
@@ -535,6 +726,10 @@ function refresh(){
   renderActivity();
   renderMeetings();
   renderNextUp();
+  renderDecisions();
+  renderQuestions();
+  renderLog();
+  renderGuideView();
 }
 function setMeter(k,p){ $("#m"+k).textContent=pctText(p); const b=$("#b"+k); b.style.width=(p*100)+"%"; b.classList.toggle("full",p>=FULL); }
 function when(ts){
@@ -549,6 +744,12 @@ function resolveNames(){
   for(const c of comments){ names[c.by]=c.by===me?"You":(c.name||"Someone"); avatars[c.by]=c.photo||""; }
   for(const k in ticks){ const v=ticks[k]; if(v&&v.by){ names[v.by]=v.by===me?"You":(v.name||"Someone"); if(v.photo) avatars[v.by]=v.photo; } }
   for(const m of meetings){ if(m.by) names[m.by]=m.by===me?"You":(m.byName||"Someone"); }
+  for(const k in stages){ const v=stages[k]; if(v&&v.by) names[v.by]=v.by===me?"You":(v.name||"Someone"); }
+  for(const k in review){ const v=review[k]; if(v&&v.by) names[v.by]=v.by===me?"You":(v.name||"Someone"); }
+  for(const k in blocked){ const v=blocked[k]; if(v&&v.by) names[v.by]=v.by===me?"You":(v.name||"Someone"); }
+  for(const d of decisions){ if(d.by) names[d.by]=d.by===me?"You":(d.name||"Someone"); }
+  for(const q of questions){ if(q.by) names[q.by]=q.by===me?"You":(q.name||"Someone"); }
+  for(const l of logs){ if(l.by) names[l.by]=l.by===me?"You":(l.name||"Someone"); }
 }
 const avatars={};
 function avatar(id){
@@ -617,6 +818,15 @@ function renderPanel(id,first){
     const b=document.createElement("b"); b.textContent=names[c.by]||"…";
     const t=document.createElement("span"); t.textContent=when(c.at);
     h.append(b,t);
+    if(backend&&backend.canWrite){
+      const cn=nodes.get(c.node);
+      if(cn&&!cn.children.length){
+        const task=document.createElement("button"); task.className="task"; task.type="button"; task.textContent="→ Task";
+        task.title="Set a due date on this item from this comment";
+        task.onclick=()=>{ reveal(c.node,false); const e=els.get(c.node); if(e&&e.dueChip) e.dueChip.click(); };
+        h.appendChild(task);
+      }
+    }
     if(backend&&backend.canWrite&&c.by===backend.me){
       const del=document.createElement("button"); del.className="del"; del.type="button"; del.textContent="Delete";
       del.onclick=async()=>{ del.disabled=true;
@@ -703,6 +913,58 @@ function exportMarkdown(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
+function renderSimpleLog(ulId,items,opts){
+  const ul=$("#"+ulId); if(!ul) return; ul.textContent="";
+  if(!items.length){ const empty=document.createElement("div"); empty.className="empty"; empty.textContent=opts.emptyText; ul.appendChild(empty); return; }
+  for(const it of [...items].sort((a,b)=>b.at-a.at)){
+    const li=document.createElement("li"); li.className="panel-card"+(opts.isResolved(it)?" resolved":"");
+    const h=document.createElement("div"); h.className="ph";
+    const by=document.createElement("span"); by.className="pby"; by.textContent=(names[it.by]||"…")+" · "+when(it.at);
+    h.appendChild(by);
+    if(backend&&backend.canWrite){
+      const toggle=document.createElement("button"); toggle.className="tbtn"; toggle.type="button";
+      toggle.textContent=opts.isResolved(it)?opts.reopenLabel:opts.resolveLabel;
+      toggle.onclick=()=>opts.onToggle(it);
+      h.appendChild(toggle);
+    }
+    li.appendChild(h);
+    const txt=document.createElement("div"); txt.className="ptxt"; txt.textContent=it.text;
+    li.appendChild(txt);
+    ul.appendChild(li);
+  }
+}
+function renderDecisions(){
+  renderSimpleLog("decisionsList",decisions,{
+    emptyText:"No decisions recorded yet.",
+    isResolved:d=>d.status==="recorded",
+    resolveLabel:"Mark recorded",
+    reopenLabel:"Reopen",
+    onToggle:async d=>{ try{ await backend.updateDecision(d.id,{status:d.status==="recorded"?"open":"recorded"}); }catch(err){ showNote("That could not be saved."); } }
+  });
+}
+function renderQuestions(){
+  renderSimpleLog("questionsList",questions,{
+    emptyText:"No questions queued yet.",
+    isResolved:q=>q.answered,
+    resolveLabel:"Mark answered",
+    reopenLabel:"Reopen",
+    onToggle:async q=>{ try{ await backend.updateQuestion(q.id,{answered:!q.answered}); }catch(err){ showNote("That could not be saved."); } }
+  });
+}
+function renderLog(){
+  const box=$("#logList"); if(!box) return; box.textContent="";
+  if(!logs.length){ const empty=document.createElement("div"); empty.className="empty"; empty.textContent="No entries yet."; box.appendChild(empty); return; }
+  const FIELDS=[["intended","Intended today"],["actual","Actually did"],["produced","Files / results produced"],
+    ["failed","What failed"],["learned","What I learned"],["blocker","Current blocker"],["tomorrow","First action tomorrow"]];
+  for(const e of [...logs].sort((a,b)=>b.at-a.at)){
+    const det=document.createElement("details"); det.className="logcard";
+    const sum=document.createElement("summary"); sum.textContent=(names[e.by]||"…")+" · "+new Date(e.at).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});
+    det.appendChild(sum);
+    const dl=document.createElement("dl");
+    for(const [k,label] of FIELDS){ if(!e[k]) continue; const dt=document.createElement("dt"); dt.textContent=label; const dd=document.createElement("dd"); dd.textContent=e[k]; dl.append(dt,dd); }
+    det.appendChild(dl); box.appendChild(det);
+  }
+}
 function renderMeetings(){
   const ul=$("#mlist"); if(!ul) return; ul.textContent="";
   const sorted=[...meetings].sort((a,b)=>a.at-b.at);
@@ -755,6 +1017,54 @@ function renderNextUp(){
     li.append(b,sub); ul.appendChild(li);
   }
 }
+function guideRow(ul,title,sub){
+  const li=document.createElement("li");
+  const b=document.createElement("button"); b.textContent=title; b.onclick=()=>{};
+  li.appendChild(b);
+  if(sub){ const s=document.createElement("div"); s.className="what"; s.textContent=sub; li.appendChild(s); }
+  ul.appendChild(li);
+  return {li,b};
+}
+function guideSection(root,heading,rows,emptyText){
+  const h=document.createElement("h4"); h.textContent=heading; root.appendChild(h);
+  const ul=document.createElement("ul");
+  if(!rows.length){ const li=document.createElement("li"); li.className="empty"; li.style.display="block"; li.textContent=emptyText; ul.appendChild(li); }
+  else for(const r of rows){
+    const {b}=guideRow(ul,r.title,r.sub);
+    if(r.onClick) b.onclick=r.onClick;
+  }
+  root.appendChild(ul);
+}
+function renderGuideView(){
+  const root=$("#guideviewPanel"); if(!root||root.hidden) return; root.textContent="";
+  const now=Date.now();
+  const confirmedPast=meetings.filter(m=>m.status==="confirmed"&&m.at<=now).sort((a,b)=>b.at-a.at);
+  const sinceRef=confirmedPast.length?confirmedPast[0].at:(now-7*86400000);
+  const allLeaves=leaves(tree);
+
+  const awaitingReview=allLeaves.filter(n=>stages[n.id]&&stages[n.id].idx===STAGES.length-2&&(!review[n.id]||review[n.id].status!=="approved"));
+  const decisionsOpen=decisions.filter(d=>d.status!=="recorded");
+  const blockedList=Object.entries(blocked);
+  const resultsSince=allLeaves.filter(n=>stages[n.id]&&stages[n.id].idx>=3&&stages[n.id].at>sinceRef);
+  const overdueMs=allLeaves.filter(n=>dues[n.id]&&dues[n.id]<now&&!ticks[n.id]);
+  const questionsOpen=questions.filter(q=>!q.answered);
+  const weekAgo=now-7*86400000;
+  const recentlyRevised=allLeaves.filter(n=>{
+    const t=ticks[n.id], st=stages[n.id];
+    const lastComment=comments.filter(c=>c.node===n.id).sort((a,b)=>b.at-a.at)[0];
+    return (t&&t.at>weekAgo)||(st&&st.at>weekAgo)||(lastComment&&lastComment.at>weekAgo);
+  });
+  const changesRequested=allLeaves.filter(n=>review[n.id]&&review[n.id].status==="changes_requested");
+
+  guideSection(root,"Items awaiting review",awaitingReview.map(n=>({title:pretty(n.title),sub:breadcrumbParent(n),onClick:()=>reveal(n.id,false)})),"Nothing waiting on a review right now.");
+  guideSection(root,"Decisions required",decisionsOpen.map(d=>({title:d.text,sub:"by "+(names[d.by]||"…")+" · "+when(d.at)})),"No open decisions.");
+  guideSection(root,"Current blockers",blockedList.map(([id,b])=>({title:pretty((nodes.get(id)||{title:id}).title),sub:b.reason,onClick:()=>reveal(id,false)})),"Nothing blocked.");
+  guideSection(root,"Results since last meeting",resultsSince.map(n=>({title:pretty(n.title),sub:breadcrumbParent(n)+" · "+STAGES[stages[n.id].idx],onClick:()=>reveal(n.id,false)})),"No new results since the last confirmed meeting.");
+  guideSection(root,"Overdue milestones",overdueMs.map(n=>({title:pretty(n.title),sub:"Was due "+new Date(dues[n.id]).toLocaleDateString(),onClick:()=>reveal(n.id,false)})),"Nothing overdue.");
+  guideSection(root,"Questions for next meeting",questionsOpen.map(q=>({title:q.text,sub:"by "+(names[q.by]||"…")+" · "+when(q.at)})),"No open questions.");
+  guideSection(root,"Recently revised items",recentlyRevised.map(n=>({title:pretty(n.title),sub:breadcrumbParent(n),onClick:()=>reveal(n.id,false)})),"Nothing revised in the last 7 days.");
+  guideSection(root,"Items where changes were requested",changesRequested.map(n=>({title:pretty(n.title),sub:(review[n.id].note||"No note")+" · "+when(review[n.id].at),onClick:()=>reveal(n.id,false)})),"No open change requests.");
+}
 function renderActivity(){
   const ul=$("#activity");
   const items=[...comments.map(c=>({k:"c",at:c.at,by:c.by,node:c.node,text:c.text})),
@@ -798,6 +1108,41 @@ $("#meetingsToggle").onclick=()=>{
   panel.hidden=!open; $("#meetingsToggle").setAttribute("aria-expanded",String(open));
 };
 $("#exportBtn").onclick=exportMarkdown;
+function wirePanelToggle(btnId,panelId,onOpen){
+  $("#"+btnId).onclick=()=>{
+    const panel=$("#"+panelId), open=panel.hidden;
+    panel.hidden=!open; $("#"+btnId).setAttribute("aria-expanded",String(open));
+    if(open&&onOpen) onOpen();
+  };
+}
+wirePanelToggle("guideviewToggle","guideviewPanel",renderGuideView);
+wirePanelToggle("decisionsToggle","decisionsPanel");
+wirePanelToggle("questionsToggle","questionsPanel");
+wirePanelToggle("logToggle","logPanel");
+$("#decisionForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  if(!backend||!backend.canWrite) return;
+  const ta=$("#decisionText"), text=ta.value.trim(); if(!text) return;
+  try{ await backend.addDecision({text,status:"open",at:Date.now()}); ta.value=""; }
+  catch(err){ showNote("The decision could not be saved."); }
+});
+$("#questionForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  if(!backend||!backend.canWrite) return;
+  const ta=$("#questionText"), text=ta.value.trim(); if(!text) return;
+  try{ await backend.addQuestion({text,answered:false,at:Date.now()}); ta.value=""; }
+  catch(err){ showNote("The question could not be saved."); }
+});
+$("#logForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  if(!backend||!backend.canWrite) return;
+  const fields=["Intended","Actual","Produced","Failed","Learned","Blocker","Tomorrow"];
+  const entry={at:Date.now()};
+  for(const f of fields) entry[f.toLowerCase()]=$("#log"+f).value.trim();
+  if(!entry.intended&&!entry.actual){ showNote("Fill in at least what you intended or what you did."); return; }
+  try{ await backend.addLog(entry); for(const f of fields) $("#log"+f).value=""; }
+  catch(err){ showNote("The log entry could not be saved."); }
+});
 $("#mform").addEventListener("submit",async ev=>{
   ev.preventDefault();
   if(!backend||!backend.canWrite) return;
@@ -820,6 +1165,7 @@ if(window.TRACKER_EMAILJS&&window.TRACKER_EMAILJS.publicKey&&window.emailjs) ema
 function connect(){
   if(backend&&backend.stop) backend.stop();
   ticks={}; comments=[]; meetings=[]; dues={}; links={}; names={};
+  stages={}; review={}; blocked={}; decisions=[]; questions=[]; logs=[];
   if(fs&&me){
     backend=firebaseBackend(project.id,fs,me);
     setStatus("live","Shared · signed in as "+me.name);
@@ -829,10 +1175,21 @@ function connect(){
     backend=localBackend(project.id);
     setStatus("local","Saved in this browser only (shared database not set up yet)");
   }
-  backend.subscribe(t=>{ticks={...t};refresh();}, c=>{comments=c.slice();refresh();}, m=>{meetings=m.slice();refresh();},
-    d=>{dues={...d};refresh();}, l=>{links={...l};refresh();},
-    err=>{ if(err&&err.code==="permission-denied"){ showNote("Your Google account ("+(me&&me.email)+") is not on this tracker's access list. Ask the owner to add it in firestore.rules."); setStatus("ro","No access for this account"); }
-           else setStatus("ro","Live updates stopped. Reload the page to reconnect."); });
+  backend.subscribe({
+    onTicks:t=>{ticks={...t};refresh();},
+    onComments:c=>{comments=c.slice();refresh();},
+    onMeetings:m=>{meetings=m.slice();refresh();},
+    onDues:d=>{dues={...d};refresh();},
+    onLinks:l=>{links={...l};refresh();},
+    onStages:s=>{stages={...s};refresh();},
+    onReview:r=>{review={...r};refresh();},
+    onBlocked:b=>{blocked={...b};refresh();},
+    onDecisions:d=>{decisions=d.slice();refresh();},
+    onQuestions:q=>{questions=q.slice();refresh();},
+    onLogs:l=>{logs=l.slice();refresh();},
+    onError:err=>{ if(err&&err.code==="permission-denied"){ showNote("Your Google account ("+(me&&me.email)+") is not on this tracker's access list. Ask the owner to add it in firestore.rules."); setStatus("ro","No access for this account"); }
+           else setStatus("ro","Live updates stopped. Reload the page to reconnect."); }
+  });
   refresh();
 }
 function switchProject(p){

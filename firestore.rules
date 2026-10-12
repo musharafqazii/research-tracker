@@ -25,6 +25,22 @@ service cloud.firestore {
         allow create: if allowed() && request.resource.data.by == request.auth.uid;
         allow update, delete: if allowed();
       }
+      // decisions and questions: anyone on the list reads and adds; either can mark one resolved/answered
+      match /decisions/{decision} {
+        allow read: if allowed();
+        allow create: if allowed() && request.resource.data.by == request.auth.uid;
+        allow update: if allowed();
+      }
+      match /questions/{question} {
+        allow read: if allowed();
+        allow create: if allowed() && request.resource.data.by == request.auth.uid;
+        allow update: if allowed();
+      }
+      // daily research log: anyone on the list reads and adds; entries are not edited or deleted
+      match /logs/{entry} {
+        allow read: if allowed();
+        allow create: if allowed() && request.resource.data.by == request.auth.uid;
+      }
     }
   }
 }
