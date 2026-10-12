@@ -1,0 +1,29 @@
+name: Weekly digest
+
+on:
+  schedule:
+    # Every Monday 06:00 UTC (~11:30am IST). GitHub may delay a scheduled run by a
+    # few minutes at busy times; that's normal.
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {} # lets you trigger a test run manually from the Actions tab
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install firebase-admin
+      - run: node scripts/weekly-digest.js
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          EMAILJS_SERVICE_ID: ${{ secrets.EMAILJS_SERVICE_ID }}
+          EMAILJS_TEMPLATE_ID: ${{ secrets.EMAILJS_TEMPLATE_ID }}
+          EMAILJS_PUBLIC_KEY: ${{ secrets.EMAILJS_PUBLIC_KEY }}
+          EMAILJS_PRIVATE_KEY: ${{ secrets.EMAILJS_PRIVATE_KEY }}
+          NOTIFY_EMAILS: "musharafqazi@physics.iitm.ac.in,garani@physics.iitm.ac.in"
+          TRACKER_PROJECT_ID: "cgpp-scalar"
+          TRACKER_PROJECT_NAME: "CGPP-SCALAR"
+          TRACKER_LINK: "https://musharafqazii.github.io/research-tracker/"

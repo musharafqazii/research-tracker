@@ -103,7 +103,16 @@ ul.kids{list-style:none;margin:0;padding:0}
 .leaf.done>.row .title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .chip{font:600 10.5px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:4px;margin-left:8px;vertical-align:2px;white-space:nowrap}
 .chip.ok{background:var(--done-soft);color:var(--done)}
-.meta{display:flex;align-items:center;gap:10px;padding-top:1px}
+.meta{display:flex;align-items:center;gap:8px;padding-top:1px;flex-wrap:wrap}
+.duebtn,.linkbtn,.linkeditbtn,.dueclearbtn{border:1px solid var(--rule);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--muted)}
+.duebtn:hover,.linkbtn:hover,.linkeditbtn:hover,.dueclearbtn:hover{color:var(--ink);background:var(--sunk)}
+.duebtn.soon{color:var(--part);border-color:var(--part)}
+.duebtn.late{color:var(--danger);border-color:var(--danger)}
+.duebtn.ok{color:var(--done);border-color:var(--done)}
+.dueinput,.linkinput{font:inherit;font-size:12px;padding:4px 6px;border-radius:6px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.linkinput{width:170px}
+.linkchip{font-size:12px;color:var(--accent);text-decoration:none;padding:4px 2px}
+.linkchip:hover{text-decoration:underline}
 .pct{font:500 12px/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted);min-width:34px;text-align:right}
 .mini{width:56px;height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
 .mini i{display:block;height:100%;background:var(--part)}
@@ -142,14 +151,14 @@ ul.kids{list-style:none;margin:0;padding:0}
 .mwhen{font:600 13px/1.3 var(--f-mono);color:var(--ink)}
 .mheadline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mby{font-size:12px;color:var(--muted)}
-.mnote{font-size:13px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+.mnote{font-size:13px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere;white-space:pre-wrap}
 .mactions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .mactions .tbtn{border:1px solid var(--rule);border-radius:6px;padding:5px 10px}
 .chip.pending{background:var(--part-soft);color:var(--part)}
 .chip.no{background:var(--sunk);color:var(--faint);text-decoration:line-through}
 .mform{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.mform input[type="datetime-local"],.mform select,.mform input[type="text"]{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
-.mform input[type="text"]{flex:1;min-width:160px}
+.mform input[type="datetime-local"],.mform select,.mform textarea{font:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.mform textarea{flex:1;min-width:180px;min-height:38px;max-height:140px;resize:vertical}
 @media (max-width:560px){.mcard{grid-template-columns:1fr}}
 
 /* aside */
@@ -160,6 +169,10 @@ ul.kids{list-style:none;margin:0;padding:0}
 .act .what{color:var(--muted)}
 .act button{color:var(--accent);text-align:left;overflow-wrap:anywhere}
 .act .q{color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nextlist{list-style:none;margin:0 0 22px;padding:0;display:flex;flex-direction:column;gap:10px}
+.nextlist li{font-size:13px}
+.nextlist button{color:var(--accent);text-align:left;font-weight:600;overflow-wrap:anywhere}
+.nextlist .what{color:var(--muted);font-size:12px;margin-top:2px}
 .legend{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:8px}
 .legend span{display:flex;align-items:center;gap:8px}
 .sw{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--faint);flex:none}
@@ -197,6 +210,7 @@ mjx-container{font-size:105%!important}
     <button class="tbtn" id="expandAll">Expand all</button>
     <button class="tbtn" id="collapseAll">Collapse all</button>
     <button class="tbtn" id="meetingsToggle" aria-expanded="false">Meetings</button>
+    <button class="tbtn" id="exportBtn">Export</button>
   </div>
   <section class="meetings" id="meetingsPanel" hidden aria-label="Meetings">
     <h3>Meetings</h3>
@@ -207,13 +221,15 @@ mjx-container{font-size:105%!important}
         <option value="30">30 min</option>
         <option value="60">60 min</option>
       </select>
-      <input type="text" id="mnote" placeholder="What's this meeting about? (optional)" aria-label="Note" maxlength="140">
+      <textarea id="mnote" rows="2" placeholder="Agenda / notes (optional)" aria-label="Agenda or notes" maxlength="800"></textarea>
       <button class="post" type="submit">Propose</button>
     </form>
   </section>
   <div class="layout">
     <main id="tree"></main>
     <aside class="aside">
+      <h3>What's next</h3>
+      <ul class="nextlist" id="nextup"></ul>
       <h3>Recent activity</h3>
       <ul class="act" id="activity"><li class="empty" style="display:block">Ticks and comments from you and your guide appear here.</li></ul>
       <div class="legend">
@@ -296,17 +312,19 @@ const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.par
           set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 function localBackend(pid){
-  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments", kM="rt:"+pid+":meetings";
-  let onT=()=>{}, onC=()=>{}, onM=()=>{};
+  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments", kM="rt:"+pid+":meetings", kD="rt:"+pid+":dues", kL="rt:"+pid+":links";
+  let onT=()=>{}, onC=()=>{}, onM=()=>{}, onD=()=>{}, onL=()=>{};
   return {
     mode:"local", me:"local", canWrite:true,
-    subscribe(t,c,m){onT=t;onC=c;onM=m;t(LS.get(kT,{}));c(LS.get(kC,[]));m(LS.get(kM,[]));},
+    subscribe(t,c,m,d,l){onT=t;onC=c;onM=m;onD=d;onL=l;t(LS.get(kT,{}));c(LS.get(kC,[]));m(LS.get(kM,[]));d(LS.get(kD,{}));l(LS.get(kL,{}));},
     async setTicks(patch){const t=LS.get(kT,{});for(const k in patch){if(patch[k])t[k]=patch[k];else delete t[k];}LS.set(kT,t);onT(t);},
     async addComment(c){const l=LS.get(kC,[]);l.push({...c,id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kC,l);onC(l);},
     async deleteComment(id){const l=LS.get(kC,[]).filter(x=>x.id!==id);LS.set(kC,l);onC(l);},
     async addMeeting(m){const l=LS.get(kM,[]);l.push({...m,id:"m"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kM,l);onM(l);},
     async updateMeeting(id,patch){const l=LS.get(kM,[]).map(x=>x.id===id?{...x,...patch}:x);LS.set(kM,l);onM(l);},
-    async deleteMeeting(id){const l=LS.get(kM,[]).filter(x=>x.id!==id);LS.set(kM,l);onM(l);}
+    async deleteMeeting(id){const l=LS.get(kM,[]).filter(x=>x.id!==id);LS.set(kM,l);onM(l);},
+    async setDue(id,ms){const d=LS.get(kD,{});if(ms)d[id]=ms;else delete d[id];LS.set(kD,d);onD(d);},
+    async setLink(id,url){const l=LS.get(kL,{});if(url)l[id]=url;else delete l[id];LS.set(kL,l);onL(l);}
   };
 }
 
@@ -318,8 +336,8 @@ function firebaseBackend(pid,fs,me){
   let unsub=[];
   return {
     mode:"live", me:me.uid, canWrite:true,
-    subscribe(onT,onC,onM,onErr){
-      unsub.push(ref.onSnapshot(s=>onT((s.exists&&s.data().ticks)||{}),onErr));
+    subscribe(onT,onC,onM,onD,onL,onErr){
+      unsub.push(ref.onSnapshot(s=>{ const data=(s.exists&&s.data())||{}; onT(data.ticks||{}); onD(data.dues||{}); onL(data.links||{}); },onErr));
       unsub.push(col.orderBy("at").onSnapshot(s=>onC(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
       unsub.push(mcol.orderBy("at").onSnapshot(s=>onM(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
     },
@@ -332,13 +350,15 @@ function firebaseBackend(pid,fs,me){
     addMeeting(m){return mcol.add(m);},
     updateMeeting(id,patch){return mcol.doc(id).update(patch);},
     deleteMeeting(id){return mcol.doc(id).delete();},
+    setDue(id,ms){return ref.set({dues:{[id]:ms?ms:del}},{merge:true});},
+    setLink(id,url){return ref.set({links:{[id]:url?url:del}},{merge:true});},
     stop(){unsub.forEach(u=>u());unsub=[];}
   };
 }
 
 /* ------------------------------------------------------------------ state */
 let project=PROJECTS[0], tree=null, nodes=new Map(), backend=null;
-let ticks={}, comments=[], meetings=[], names={}, filter="all", query="";
+let ticks={}, comments=[], meetings=[], dues={}, links={}, names={}, filter="all", query="";
 let expanded=new Set(LS.get("rt:expanded:"+project.id,null)||[]);
 const openPanels=new Set();
 const els=new Map();   // node id -> {li,row,cb,pct,mini,cm,cmN,cmSub,panel,list,kids,tw}
@@ -399,8 +419,36 @@ function makeRow(n,isPillar){
   const cm=document.createElement("button"); cm.className="cm"; cm.innerHTML=ICON.bubble+'<span class="n"></span><span class="sub"></span>';
   cm.setAttribute("aria-label","Comments on "+pretty(n.title)); cm.onclick=()=>togglePanel(n.id);
   if(n.children.length) meta.append(pct,mini); meta.append(cm);
+  let dueChip=null, dueInput=null, dueClear=null, linkA=null, linkEdit=null, linkBtn=null, linkInput=null;
+  if(!isPillar&&!n.children.length){
+    dueChip=document.createElement("button"); dueChip.type="button"; dueChip.className="tbtn duebtn"; dueChip.textContent="+ Due";
+    dueChip.setAttribute("aria-label","Due date for "+pretty(n.title));
+    dueInput=document.createElement("input"); dueInput.type="date"; dueInput.className="dueinput"; dueInput.hidden=true;
+    dueInput.setAttribute("aria-label","Pick a due date for "+pretty(n.title));
+    dueClear=document.createElement("button"); dueClear.type="button"; dueClear.className="tbtn dueclearbtn"; dueClear.textContent="Clear"; dueClear.hidden=true;
+    async function saveDue(ms){ dueInput.hidden=true; dueClear.hidden=true; if(!backend||!backend.canWrite) return;
+      try{ await backend.setDue(n.id,ms); }catch(err){ showNote("The due date could not be saved."); } }
+    dueChip.onclick=()=>{ if(dueChip.disabled) return; const show=dueInput.hidden; dueInput.hidden=!show; dueClear.hidden=!show||!dues[n.id];
+      if(show){ dueInput.value=dues[n.id]?new Date(dues[n.id]).toISOString().slice(0,10):""; dueInput.focus(); } };
+    dueInput.onchange=()=>{ const v=dueInput.value; saveDue(v?new Date(v+"T00:00").getTime():null); };
+    dueClear.onclick=()=>saveDue(null);
+    meta.append(dueChip,dueInput,dueClear);
+
+    linkA=document.createElement("a"); linkA.className="linkchip"; linkA.target="_blank"; linkA.rel="noopener"; linkA.hidden=true; linkA.textContent="Notebook ↗";
+    linkEdit=document.createElement("button"); linkEdit.type="button"; linkEdit.className="tbtn linkeditbtn"; linkEdit.textContent="Edit link"; linkEdit.hidden=true;
+    linkBtn=document.createElement("button"); linkBtn.type="button"; linkBtn.className="tbtn linkbtn"; linkBtn.textContent="+ Link";
+    linkInput=document.createElement("input"); linkInput.type="text"; linkInput.className="linkinput"; linkInput.hidden=true; linkInput.placeholder="https://…";
+    linkInput.setAttribute("aria-label","Notebook or file link for "+pretty(n.title));
+    function openLinkInput(){ linkInput.hidden=false; linkInput.value=links[n.id]||""; linkInput.focus(); linkInput.select(); }
+    linkBtn.onclick=openLinkInput; linkEdit.onclick=openLinkInput;
+    async function saveLink(){ const v=linkInput.value.trim(); linkInput.hidden=true; if(!backend||!backend.canWrite) return;
+      try{ await backend.setLink(n.id,v||null); }catch(err){ showNote("The link could not be saved."); } }
+    linkInput.onkeydown=ev=>{ if(ev.key==="Enter"){ev.preventDefault();saveLink();} if(ev.key==="Escape"){linkInput.hidden=true;} };
+    linkInput.onblur=saveLink;
+    meta.append(linkA,linkEdit,linkBtn,linkInput);
+  }
   row.append(tw,cb,tt,meta);
-  els.set(n.id,{row,cb,pct,mini:mini.firstChild,cm,cmN:cm.querySelector(".n"),cmSub:cm.querySelector(".sub"),tw,chip,who,wrap});
+  els.set(n.id,{row,cb,pct,mini:mini.firstChild,cm,cmN:cm.querySelector(".n"),cmSub:cm.querySelector(".sub"),tw,chip,who,wrap,dueChip,dueInput,dueClear,linkA,linkEdit,linkBtn,linkInput});
   wrap.appendChild(row);
   const panel=document.createElement("div"); panel.className="cpanel"; panel.hidden=true;
   panel.style.setProperty("--ind",(isPillar?0:(n.depth-1)*22)+"px");
@@ -460,6 +508,20 @@ function refresh(){
     e.cm.classList.toggle("has",own>0);
     e.cm.title=own?own+" comment"+(own>1?"s":""):"Add a comment";
     if(leaf&&t){ e.who.hidden=false; e.who.textContent="Done · "+(names[t.by]||"…")+" · "+when(t.at); } else e.who.hidden=true;
+    if(leaf&&e.dueChip){
+      const due=dues[id];
+      e.dueChip.hidden=ro&&!due; e.dueChip.disabled=ro;
+      if(due){
+        const days=Math.floor((due-Date.now())/86400000);
+        e.dueChip.textContent="Due "+new Date(due).toLocaleDateString(undefined,{day:"numeric",month:"short"});
+        e.dueChip.className="tbtn duebtn"+(t?" ok":due<Date.now()?" late":days<=7?" soon":"");
+      } else { e.dueChip.textContent="+ Due"; e.dueChip.className="tbtn duebtn"; }
+    }
+    if(leaf&&e.linkA){
+      const link=links[id];
+      e.linkA.hidden=!link; if(link) e.linkA.href=link;
+      e.linkEdit.hidden=!link||ro; e.linkBtn.hidden=!!link||ro;
+    }
     if(e.kids&&e.tw&&n.depth>0){ const open=filtering?true:expanded.has(id); e.kids.hidden=!open; e.tw.setAttribute("aria-expanded",open); }
     if(openPanels.has(id)) renderPanel(id);
   }
@@ -472,6 +534,7 @@ function refresh(){
   $("#sN").textContent=`${ln.filter(l=>ticks[l.id]).length} / ${ln.length} items`;
   renderActivity();
   renderMeetings();
+  renderNextUp();
 }
 function setMeter(k,p){ $("#m"+k).textContent=pctText(p); const b=$("#b"+k); b.style.width=(p*100)+"%"; b.classList.toggle("full",p>=FULL); }
 function when(ts){
@@ -502,6 +565,11 @@ function togglePanel(id){
 function breadcrumb(id){
   let n=nodes.get(id), parts=[];
   while(n&&n.id!=="root"){ parts.unshift(pretty(n.title)); n=n.parent; }
+  return parts.join(" \u203a ");
+}
+function breadcrumbParent(n){
+  let p=n.parent, parts=[];
+  while(p&&p.id!=="root"){ parts.unshift(pretty(p.title)); p=p.parent; }
   return parts.join(" \u203a ");
 }
 function sendNotification(section,message){
@@ -579,8 +647,9 @@ function showNote(t){ const n=$("#note"); n.textContent=t; n.hidden=false; }
 function fmtWhen(at){
   return new Date(at).toLocaleString(undefined,{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
 }
-function notifyMeetingProposed(m){ sendNotification("Meeting",fmtWhen(m.at)+" proposed"+(m.note?" — "+m.note:"")); }
-function notifyMeetingResponse(m){ sendNotification("Meeting",(m.status==="confirmed"?"Confirmed: ":"Declined: ")+fmtWhen(m.at)+(m.note?" — "+m.note:"")); }
+function noteSnippet(note){ if(!note) return ""; const first=note.split("\n")[0].trim(); return first.length<note.trim().length?first+" …":first; }
+function notifyMeetingProposed(m){ sendNotification("Meeting",fmtWhen(m.at)+" proposed"+(m.note?" — "+noteSnippet(m.note):"")); }
+function notifyMeetingResponse(m){ sendNotification("Meeting",(m.status==="confirmed"?"Confirmed: ":"Declined: ")+fmtWhen(m.at)+(m.note?" — "+noteSnippet(m.note):"")); }
 function mkBtn(text,fn){ const b=document.createElement("button"); b.type="button"; b.className="tbtn"; b.textContent=text; b.onclick=fn; return b; }
 async function respondMeeting(m,status){
   try{ await backend.updateMeeting(m.id,{status,respondedBy:backend.me,respondedAt:Date.now()}); notifyMeetingResponse({...m,status}); }
@@ -593,7 +662,7 @@ async function removeMeeting(id){
 function downloadICS(m){
   const dt=ms=>new Date(ms).toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
   const start=m.at, end=m.at+(parseInt(m.duration,10)||30)*60000;
-  const esc=s=>(s||"").replace(/\n/g," ").replace(/[,;]/g,"\\$&");
+  const esc=s=>(s||"").replace(/\\/g,"\\\\").replace(/[,;]/g,"\\$&").replace(/\n/g,"\\n");
   const ics=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//"+project.name+" Tracker//EN","BEGIN:VEVENT",
     "UID:"+m.id+"@research-tracker","DTSTAMP:"+dt(Date.now()),"DTSTART:"+dt(start),"DTEND:"+dt(end),
     "SUMMARY:"+esc(project.name+" meeting")]
@@ -601,6 +670,36 @@ function downloadICS(m){
     .concat(["END:VEVENT","END:VCALENDAR"]).join("\r\n");
   const blob=new Blob([ics],{type:"text/calendar"});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="meeting.ics";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function exportMarkdown(){
+  const memo=new Map();
+  const lines=["# "+project.name+" — progress snapshot","",new Date().toLocaleString(),"",project.goal,""];
+  (function walk(n,depth){
+    if(n.id==="root"){ n.children.forEach(c=>walk(c,0)); return; }
+    const p=progress(n,memo), leaf=!n.children.length;
+    const mark=leaf?(ticks[n.id]?"[x] ":"[ ] "):"";
+    lines.push("  ".repeat(depth)+"- "+mark+pretty(n.title)+(leaf?"":" — "+pctText(p)));
+    if(leaf){
+      const extra=[];
+      if(dues[n.id]) extra.push("due "+new Date(dues[n.id]).toLocaleDateString());
+      if(links[n.id]) extra.push("link: "+links[n.id]);
+      const nc=comments.filter(c=>c.node===n.id).length;
+      if(nc) extra.push(nc+" comment"+(nc>1?"s":""));
+      if(extra.length) lines.push("  ".repeat(depth+1)+"  ("+extra.join(" · ")+")");
+    }
+    n.children.forEach(c=>walk(c,depth+1));
+  })(tree,0);
+  lines.push("","## Comments","");
+  if(!comments.length) lines.push("None yet.");
+  else for(const c of [...comments].sort((a,b)=>a.at-b.at)) lines.push("- **"+(names[c.by]||"…")+"** on *"+breadcrumb(c.node)+"* ("+new Date(c.at).toLocaleDateString()+"): "+c.text.replace(/\n/g," "));
+  lines.push("","## Meetings","");
+  if(!meetings.length) lines.push("None proposed.");
+  else for(const m of [...meetings].sort((a,b)=>a.at-b.at)) lines.push("- "+fmtWhen(m.at)+" — "+(m.status||"proposed")+(m.note?" — "+m.note.replace(/\n/g," "):""));
+  const blob=new Blob([lines.join("\n")],{type:"text/markdown"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=project.id+"-progress-"+new Date().toISOString().slice(0,10)+".md";
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
@@ -635,6 +734,27 @@ function renderMeetings(){
   }
 }
 
+function renderNextUp(){
+  const ul=$("#nextup"); if(!ul) return; ul.textContent="";
+  const open=leaves(tree).filter(n=>!ticks[n.id]);
+  open.sort((a,b)=>{
+    const da=dues[a.id], db=dues[b.id];
+    if(da&&db) return da-db;
+    if(da) return -1;
+    if(db) return 1;
+    return 0;
+  });
+  const list=open.slice(0,5);
+  if(!list.length){ const li=document.createElement("li"); li.className="empty"; li.style.display="block"; li.textContent="Everything is ticked off. Nice work."; ul.appendChild(li); return; }
+  for(const n of list){
+    const li=document.createElement("li");
+    const b=document.createElement("button"); b.textContent=pretty(n.title); b.onclick=()=>reveal(n.id,false);
+    const sub=document.createElement("div"); sub.className="what";
+    const due=dues[n.id];
+    sub.textContent=breadcrumbParent(n)+(due?" · Due "+new Date(due).toLocaleDateString(undefined,{day:"numeric",month:"short"})+(due<Date.now()?" (overdue)":""):"");
+    li.append(b,sub); ul.appendChild(li);
+  }
+}
 function renderActivity(){
   const ul=$("#activity");
   const items=[...comments.map(c=>({k:"c",at:c.at,by:c.by,node:c.node,text:c.text})),
@@ -677,6 +797,7 @@ $("#meetingsToggle").onclick=()=>{
   const panel=$("#meetingsPanel"), open=panel.hidden;
   panel.hidden=!open; $("#meetingsToggle").setAttribute("aria-expanded",String(open));
 };
+$("#exportBtn").onclick=exportMarkdown;
 $("#mform").addEventListener("submit",async ev=>{
   ev.preventDefault();
   if(!backend||!backend.canWrite) return;
@@ -698,7 +819,7 @@ const NOTIFY_EMAILS=["musharafqazi@physics.iitm.ac.in","garani@physics.iitm.ac.i
 if(window.TRACKER_EMAILJS&&window.TRACKER_EMAILJS.publicKey&&window.emailjs) emailjs.init({publicKey:window.TRACKER_EMAILJS.publicKey});
 function connect(){
   if(backend&&backend.stop) backend.stop();
-  ticks={}; comments=[]; meetings=[]; names={};
+  ticks={}; comments=[]; meetings=[]; dues={}; links={}; names={};
   if(fs&&me){
     backend=firebaseBackend(project.id,fs,me);
     setStatus("live","Shared · signed in as "+me.name);
@@ -709,6 +830,7 @@ function connect(){
     setStatus("local","Saved in this browser only (shared database not set up yet)");
   }
   backend.subscribe(t=>{ticks={...t};refresh();}, c=>{comments=c.slice();refresh();}, m=>{meetings=m.slice();refresh();},
+    d=>{dues={...d};refresh();}, l=>{links={...l};refresh();},
     err=>{ if(err&&err.code==="permission-denied"){ showNote("Your Google account ("+(me&&me.email)+") is not on this tracker's access list. Ask the owner to add it in firestore.rules."); setStatus("ro","No access for this account"); }
            else setStatus("ro","Live updates stopped. Reload the page to reconnect."); });
   refresh();
