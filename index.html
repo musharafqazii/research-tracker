@@ -211,180 +211,24 @@ const PROJECTS = [{
   goal: "Gravitational production of a conformally coupled massive scalar across a smooth inflation-to-radiation transition: to second order in scalar and tensor metric perturbations, first order in the quartic self-interaction, and their mixing.",
   outline: `
 - Theory
-  - Homogeneous case
-    - Free field
-      - Setup and background
-        - Action and conformal coupling :: $S=-\\frac12\\int d^4x\\sqrt{-g}\\,[(\\nabla\\Phi)^2+m^2\\Phi^2+\\xi R\\Phi^2]$ with $\\xi=1/6$; units $a_e=H_e=1$
-        - Smooth inflation-to-radiation background :: $h(N)=H/H_e=2^{2/s}(1+e^{sN})^{-2/s}$, $s=8$, $h_\\infty=2^{2/s}$
-        - Time variables :: e-folds $N=\\ln a$, conformal time $d\\tau=dN/(aH)$
-        - Conformal-frame field and mode equation :: $\\chi=a\\Phi$, $\\chi_k''+\\omega_k^2\\chi_k=0$, $\\omega_k^2=k^2+a^2m^2$
-      - Quantization and initial state
-        - Canonical quantization and Wronskian :: $\\chi_k\\chi_k^{*\\prime}-\\chi_k^{*}\\chi_k'=i$
-        - Fourth-order adiabatic (WKB) vacuum :: initial data imposed at $k/(aH)\\gg1$
-        - Bunch-Davies limit in de Sitter
-        - Adiabaticity parameter :: $\\epsilon_{\\rm ad}=|\\omega_k'|/\\omega_k^2$ and where the WKB state is valid
-      - Bogoliubov coefficients
-        - Definition in the instantaneous adiabatic basis :: $|\\alpha_k|^2-|\\beta_k|^2=1$
-        - Late-time freeze-out of the occupation :: $|\\beta_k|^2$ constant once $\\epsilon_{\\rm ad}\\to0$
-        - Radiation era: exact parabolic-cylinder solution :: Weber functions
-        - Instantaneous-transition limit :: Hankel/Weber matching at $N=0$
-        - Light- and heavy-mass analytic limits
-      - Observables
-        - Free energy density vs conformal time :: adiabatic-subtracted $a^4\\langle\\rho\\rangle(\\tau)$
-        - Free energy density spectrum :: $d\\rho/d\\ln k$
-        - Free beta squared vs conformal time :: instantaneous $|\\beta_k(\\tau)|^2$
-        - Free beta squared spectrum :: frozen $|\\beta_k|^2$ against $k$
-        - Free number density vs conformal time :: $a^3n=\\int\\frac{d^3k}{(2\\pi)^3}|\\beta_k|^2$
-        - Free number density spectrum :: $k^3|\\beta_k|^2/2\\pi^2$
-      - Relic abundance
-        - Abundance integral I(m/H)
-        - Reheating convention :: $3M_{\\rm Pl}^2(h_\\infty H_e)^2=\\frac{\\pi^2}{30}g_*T_{\\rm RH}^4$
-        - Yield and relic density :: $Y=C_Y\\,I\\,(T_{\\rm RH}/M_{\\rm Pl})^3/h_\\infty^3$, mapping to $\\Omega_\\chi h^2$
-        - Reheating temperature required for the observed abundance :: $\\Omega_\\chi h^2=0.12$
-    - Quartic interaction
-      - Formulation
-        - Interaction term in the conformal frame :: $\\frac{\\lambda}{24}\\Phi^4\\sqrt{-g}=\\frac{\\lambda}{24}\\phi^4$ (no explicit $a$)
-        - In-in expansion to first order in lambda :: $\\langle\\rho\\rangle_1=-i\\int^{\\tau}dt\\,\\langle[\\rho(\\tau),H_I(t)]\\rangle$
-        - Wick contractions: tadpole and contact terms :: effective mass $M^2+\\frac{\\lambda}{2}\\langle\\phi^2\\rangle$
-        - First order versus self-consistent Hartree
-      - Bare
-        - Divergence structure of the field variance :: quadratic and logarithmic UV divergences of $\\langle\\phi^2\\rangle$
-        - Bare energy density vs conformal time
-        - Bare energy density spectrum
-        - Bare beta squared vs conformal time
-        - Bare beta squared spectrum
-        - Bare number density vs conformal time
-        - Bare number density spectrum
-      - Renormalized
-        - Adiabatic subtraction to fourth order
-        - Counterterms :: $\\delta m^2$, $\\delta\\lambda$, $\\delta\\xi\\,R\\phi^2$ and curvature-squared terms
-        - Renormalization conditions and scale :: choice of $\\mu$ and scheme
-        - Renormalized energy density vs conformal time
-        - Renormalized energy density spectrum
-        - Renormalized beta squared vs conformal time
-        - Renormalized beta squared spectrum
-        - Renormalized number density vs conformal time
-        - Renormalized number density spectrum
-      - Comparison of free, bare and renormalized
-        - First-order response :: $g=(\\delta N/N)/\\lambda$
-        - Scheme dependence and sign change with mass
-        - Light- and heavy-mass behaviour
-        - Perturbativity bound on lambda
+  - Homogeneous-case
+    - Free Field :: Free massive scalar in the exact FLRW background: WKB vacuum, Bogoliubov coefficients $|\\alpha_k|^2-|\\beta_k|^2=1$, energy and number density, and the relic abundance $\\Omega_\\chi h^2$.
+    - Quartic Interaction :: First order in $\\lambda$: Hartree-corrected mode functions from $\\frac{\\lambda}{24}\\Phi^4$, bare and adiabatically renormalized, and their relic abundance.
   - Perturbation
-    - Framework
-      - Metric families and gauges :: scalar, Newtonian gauge $ds^2=a^2[(1+2\\psi)d\\tau^2-(1-2\\psi)d\\mathbf{x}^2]$; tensor, TT gauge $h_{ij}$
-      - Action expanded to second order :: derived with ininauto
-      - Energy-density observable :: $\\rho=T_{00}/(-g_{00})$ with the $\\xi=1/6$ improvement term
-      - Canonical Hamiltonian and vertices :: Legendre transform with derivative couplings, $H^{(1)}$, $H^{(2)}$
-      - In-in series with nested commutators :: $\\sum_n(-i)^n\\int\\langle[[\\rho,H(t_1)],\\dots,H(t_n)]\\rangle$
-      - Stochastic metric ensemble :: $A_S=2.1\\times10^{-9}$, $r=0.036$, $q\\in[0.1,0.3]$
-      - Ensemble mean and local RMS observables
-    - First order perturbation
-      - Scalar psi
-        - Vertices H1 and rho1 for psi
-        - First-order in-in terms :: $\\langle\\rho_1\\rangle-i\\langle[\\rho_0,H_1]\\rangle$
-        - Zero mean and local response :: $\\langle\\delta n\\rangle=0$; RMS $\\delta n/n$ and $\\delta\\rho/\\rho$
-      - Tensor h
-        - Vertex and TT projection :: $h_{ij}\\partial_i\\phi\\,\\partial_j\\phi$
-        - First-order in-in terms and selection rules
-        - Local response to tensor modes
-    - Second order perturbation
-      - Scalar psi squared
-        - The four second-order in-in terms :: $\\langle\\rho_2\\rangle$, $-i\\langle[\\rho_1,H_1]\\rangle$, $-i\\langle[\\rho_0,H_2]\\rangle$, $-\\langle[[\\rho_0,H_1],H_1]\\rangle$
-        - Ensemble-averaged number change :: mean $\\delta N/N$ at $O(\\psi^2)$
-        - Redistribution versus net production
-      - Tensor h squared
-        - Second-order in-in terms with TT tensors
-        - Ensemble-averaged number change at O(h squared)
-      - Renormalization at second order :: curvature-dependent counterterms
-    - First order perturbation + Quartic interaction
-      - O(lambda psi) in-in terms
-      - O(lambda h) in-in terms
-      - Zero mean and local RMS at O(lambda psi)
-    - Second order perturbation + Quartic interaction
-      - O(lambda psi squared) in-in terms
-      - O(lambda h squared) in-in terms
-      - Renormalization of the mixed terms :: $\\lambda$ counterterms in the perturbed geometry
-      - Relic density from all orders combined :: ranked against the Planck $1\\sigma$ error on $\\Omega_ch^2$
+    - First order perturbation :: $O(\\psi)$ and $O(h)$ in-in correction to the energy and number density from one scalar (Newtonian-gauge) or tensor (TT-gauge) metric-perturbation insertion.
+    - Second order perturbation :: $O(\\psi^2)$ and $O(h^2)$ in-in correction from two metric-perturbation insertions, with the second-order counterterms.
+    - First order perturbation + Quartic Interaction :: Mixing term $O(\\lambda\\psi)$ and $O(\\lambda h)$: one metric-perturbation insertion together with the quartic vertex.
+    - Second order perturbation + Quartic interaction :: Mixing term $O(\\lambda\\psi^2)$ and $O(\\lambda h^2)$, its renormalization, and the relic density combining every order.
 - Numerics
-  - Homogeneous case
-    - Free field
-      - Solver infrastructure
-        - Background and aH implementation
-        - Mode solver in e-folds :: adaptive integration from the WKB start
-        - Invariant monitors :: Wronskian and $|\\alpha|^2-|\\beta|^2=1$
-        - Parallel momentum grid on half the cores
-        - Library tests :: <span class="nb">pytest -m "not slow"</span>
-      - Mode evolution
-        - Mode equation runs at three masses :: <span class="nb">mode_equation</span>, $\\tilde m=0.1,1,3$
-        - Exact alpha-beta evolution :: <span class="nb">alpha_beta_exact</span>
-        - First-order adiabatic approximation :: <span class="nb">first_order</span>
-        - Instantaneous-transition comparison :: <span class="nb">instantaneous_transition</span>
-        - Grid and tolerance convergence
-      - Plots
-        - Free energy density vs conformal time
-        - Free energy density spectrum
-        - Free beta squared vs conformal time
-        - Free beta squared spectrum
-        - Free number density vs conformal time
-        - Free number density spectrum
-      - Validation
-        - Analytic limits :: <span class="nb">fig_analytic_limits</span>
-        - de Sitter Bunch-Davies check :: <span class="nb">check_desitter_bunch_davies</span>
-        - Radiation tail, IR periods and UV branch point :: <span class="nb">check_radiation_tail</span>, <span class="nb">check_ir_periods</span>, <span class="nb">check_branch_point_uv</span>
-        - Light-mass abundance validation :: <span class="nb">light_abundance_validation</span>
-      - Abundance and relic density
-        - Abundance scan :: <span class="nb">abundance_scan</span>, about 10 minutes
-        - Relic density figure :: <span class="nb">fig_abundance_relic</span>
-    - Quartic interaction
-      - Solver
-        - Hartree run with fourth-order initial data :: <span class="nb">quartic_hartree_run</span>
-        - Initial-state check :: <span class="nb">check_quartic_initial_state</span>
-        - Linearity in lambda :: <span class="nb">quartic_check</span>
-        - Self-consistent Hartree :: <span class="nb">hartree_selfconsistent</span>
-      - Bare
-        - Bare energy density vs conformal time
-        - Bare energy density spectrum
-        - Bare beta squared vs conformal time
-        - Bare beta squared spectrum
-        - Bare number density vs conformal time
-        - Bare number density spectrum
-      - Renormalized
-        - Renormalized energy density vs conformal time
-        - Renormalized energy density spectrum
-        - Renormalized beta squared vs conformal time
-        - Renormalized beta squared spectrum
-        - Renormalized number density vs conformal time
-        - Renormalized number density spectrum
-      - Comparison of free, bare and renormalized
-        - Overlay plots of the three
-        - Relic density against mass and lambda :: <span class="nb">omega_vs_mass_lambda</span>
-        - Largest perturbative lambda :: <span class="nb">hartree_selfconsistent</span>
-        - Paper figures for the quartic case :: <span class="nb">fig_quartic_energy</span>, <span class="nb">fig_quartic_number</span>
+  - Homogeneous-case
+    - Free Field :: <span class="nb">mode_equation</span>, <span class="nb">alpha_beta_exact</span>, <span class="nb">abundance_scan</span>
+    - Quartic Interaction :: <span class="nb">quartic_hartree_run</span>, <span class="nb">omega_vs_mass_lambda</span>
   - Perturbation
-    - Engines and infrastructure
-      - Mode-source hierarchy engine :: <span class="nb">perturbation_engine</span>
-      - Direct in-in engine :: <span class="nb">inin_engine</span>
-      - Run cache and job queue
-      - Grids :: $q\\in[0.1,0.3]$, $N_{\\rm end}=5.5$, $p_{\\max}=5$, $n_p=40$, $n_\\mu=8$
-      - Convergence study :: <span class="nb">pert_convergence</span>
-      - Engine versus in-in cross-check
-    - First order perturbation
-      - Scalar psi runs and plots :: <span class="nb">pert_1_scalar_h</span>, <span class="nb">inin_1_scalar_h</span>
-      - Tensor h runs and plots :: <span class="nb">pert_2_tensor_h</span>, <span class="nb">inin_2_tensor_h</span>
-      - Freezing and momentum-cutoff checks
-    - Second order perturbation
-      - Scalar psi squared runs and plots :: <span class="nb">pert_3_scalar_h2</span>, <span class="nb">inin_3_scalar_h2</span>
-      - Tensor h squared runs and plots :: <span class="nb">pert_4_tensor_h2</span>, <span class="nb">inin_4_tensor_h2</span>
-      - Summary checks :: <span class="nb">pert_summary</span>
-    - First order perturbation + Quartic interaction
-      - O(lambda psi) and O(lambda h) runs :: <span class="nb">pert_5_lambda_h</span>, <span class="nb">inin_5_lambda_h</span>
-      - Lambda-sigma check :: <span class="nb">pert_lambda_sigma_check</span>
-    - Second order perturbation + Quartic interaction
-      - O(lambda psi squared) and O(lambda h squared) runs :: <span class="nb">pert_6_lambda_h2</span>, <span class="nb">inin_6_lambda_h2</span>
-      - Mass scan :: <span class="nb">pert_mass_scan</span>
-      - Relic density of all combinations :: <span class="nb">final_result</span>
-      - Low-q extension and relic peak validation :: <span class="nb">low_q_extension_validation</span>, <span class="nb">relic_delta_peak_scan</span>
+    - First order perturbation :: <span class="nb">pert_1_scalar_h</span>, <span class="nb">inin_1_scalar_h</span>, <span class="nb">pert_2_tensor_h</span>, <span class="nb">inin_2_tensor_h</span>
+    - Second order perturbation :: <span class="nb">pert_3_scalar_h2</span>, <span class="nb">inin_3_scalar_h2</span>, <span class="nb">pert_4_tensor_h2</span>, <span class="nb">inin_4_tensor_h2</span>
+    - First order perturbation + Quartic Interaction :: <span class="nb">pert_5_lambda_h</span>, <span class="nb">inin_5_lambda_h</span>
+    - Second order perturbation + Quartic interaction :: <span class="nb">pert_6_lambda_h2</span>, <span class="nb">inin_6_lambda_h2</span>, <span class="nb">final_result</span>
+
 `
 }];
 
