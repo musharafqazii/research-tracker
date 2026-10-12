@@ -201,6 +201,8 @@ window.MathJax={tex:{inlineMath:[["$","$"]]},svg:{fontCache:"global"},startup:{t
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@5.0.3/dist/email.min.js"></script>
+<script src="email-config.js"></script>
 <script>
 /* ------------------------------------------------------------------ projects and their outlines
    Outline syntax: two spaces of indent per level, "- Title :: detail". Ids come from the titles, so keep
@@ -454,6 +456,26 @@ function togglePanel(id){
   if(openPanels.has(id)){ openPanels.delete(id); e.panel.hidden=true; }
   else { openPanels.add(id); e.panel.hidden=false; renderPanel(id,true); const ta=e.panel.querySelector("textarea"); if(ta&&backend&&backend.canWrite) ta.focus(); }
 }
+function breadcrumb(id){
+  let n=nodes.get(id), parts=[];
+  while(n&&n.id!=="root"){ parts.unshift(pretty(n.title)); n=n.parent; }
+  return parts.join(" \u203a ");
+}
+function notifyComment(id,text){
+  const ECFG=window.TRACKER_EMAILJS;
+  if(!ECFG||!ECFG.publicKey||!window.emailjs||!me) return;
+  const recipients=NOTIFY_EMAILS.filter(e=>e.toLowerCase()!==(me.email||"").toLowerCase());
+  for(const to of recipients){
+    emailjs.send(ECFG.serviceId,ECFG.templateId,{
+      to_email: to,
+      from_name: me.name||me.email,
+      project: project.name,
+      section: breadcrumb(id),
+      message: text,
+      link: location.href
+    }).catch(err=>console.warn("comment email not sent:",err));
+  }
+}
 function renderPanel(id,first){
   const e=els.get(id), list=comments.filter(c=>c.node===id);
   let box=e.panel.querySelector(".clist");
@@ -468,7 +490,7 @@ function renderPanel(id,first){
       ta.oninput=()=>{btn.disabled=!ta.value.trim(); const d=LS.get("rt:drafts",{}); d[id]=ta.value; LS.set("rt:drafts",d);};
       ta.onkeydown=ev=>{ if(ev.key==="Enter"&&(ev.metaKey||ev.ctrlKey)){ev.preventDefault();form.requestSubmit();} };
       form.onsubmit=async ev=>{ ev.preventDefault(); const text=ta.value.trim(); if(!text) return; btn.disabled=true;
-        try{ await backend.addComment({node:id,text,by:backend.me,at:Date.now()}); ta.value=""; const d=LS.get("rt:drafts",{}); delete d[id]; LS.set("rt:drafts",d); }
+        try{ await backend.addComment({node:id,text,by:backend.me,at:Date.now()}); notifyComment(id,text); ta.value=""; const d=LS.get("rt:drafts",{}); delete d[id]; LS.set("rt:drafts",d); }
         catch(err){ showNote("The comment was not saved: "+(err&&err.code==="quota_exceeded"?"the tracker is full.":"check that you are signed in with an account on the access list.")); btn.disabled=false; } };
       form.append(ta,btn); e.panel.appendChild(form);
     }
@@ -552,6 +574,8 @@ function setStatus(kind,text){ const s=$("#status"); s.className="status "+kind;
 
 let fs=null, auth=null, me=null;
 const CFG=window.TRACKER_FIREBASE;
+const NOTIFY_EMAILS=["musharafqazi@physics.iitm.ac.in","garani@physics.iitm.ac.in"];
+if(window.TRACKER_EMAILJS&&window.TRACKER_EMAILJS.publicKey&&window.emailjs) emailjs.init({publicKey:window.TRACKER_EMAILJS.publicKey});
 function connect(){
   if(backend&&backend.stop) backend.stop();
   ticks={}; comments=[]; names={};

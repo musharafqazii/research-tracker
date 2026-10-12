@@ -27,6 +27,24 @@ Projects: **CGPP-SCALAR** (more can be added to the `PROJECTS` list in `index.ht
 Open the site, click **Sign in with Google**, and share the link with your guide.
 To add someone later, add their address to `firestore.rules` and publish the rules again.
 
+## Comment email notifications (optional, free)
+
+When someone posts a comment, the other listed person can get an email automatically, using
+[EmailJS](https://www.emailjs.com) (free tier, no credit card, sends straight from the browser —
+no server needed).
+
+1. Sign up free at https://www.emailjs.com.
+2. **Email Services → Add New Service**: connect the Gmail/Outlook account that should send these
+   (this becomes the "from" address). Note its **Service ID**.
+3. **Email Templates → Create New Template**. Set the "To email" field to `{{to_email}}`, and use
+   `{{from_name}}`, `{{project}}`, `{{section}}`, `{{message}}` and `{{link}}` in the subject/body,
+   e.g. subject `{{from_name}} commented on {{project}}` and body including
+   `{{section}}: {{message}}` and a link `{{link}}`. Note its **Template ID**.
+4. **Account → General → Public Key**: copy it.
+5. Paste all three into `email-config.js` as `window.TRACKER_EMAILJS = {publicKey, serviceId, templateId}`.
+
+While `email-config.js` is left as `null`, comments still work normally — notifications are just skipped.
+
 ## Editing the outline
 
 The outline is plain text in `index.html` (`outline:` inside `PROJECTS`): two spaces of indent per level,
