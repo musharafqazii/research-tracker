@@ -485,8 +485,8 @@ function renderPanel(id,first){
     h.append(b,t);
     if(backend&&backend.canWrite&&c.by===backend.me){
       const del=document.createElement("button"); del.className="del"; del.type="button"; del.textContent="Delete";
-      del.onclick=async()=>{ if(!del.classList.contains("confirm")){del.classList.add("confirm");del.textContent="Delete for everyone?";setTimeout(()=>{del.classList.remove("confirm");del.textContent="Delete";},4000);return;}
-        try{ await backend.deleteComment(c.id); }catch(err){ showNote("The comment could not be deleted."); } };
+      del.onclick=async()=>{ del.disabled=true;
+        try{ await backend.deleteComment(c.id); }catch(err){ showNote("The comment could not be deleted."); del.disabled=false; } };
       h.appendChild(del);
     }
     const txt=document.createElement("div"); txt.className="txt"; txt.textContent=c.text;
