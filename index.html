@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Research Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a research ledger. Header with the project switcher and one global meter, then the two equal pillars
+   (Theory, Numerics) as collapsible trees; recent activity alongside on wide screens. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --sunk:#eceef2; --ink:#16192a; --muted:#5d6377; --faint:#9399aa; --rule:#dde0e7;
+  --accent:#3346b8; --accent-soft:#e6e9fb; --done:#1b8a57; --done-soft:#e3f4ea; --part:#b36b00; --part-soft:#fbf0dd;
+  --danger:#b3372e;
+  --f-display:"Literata", "Iowan Old Style", Georgia, serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12141c; --surface:#1a1d28; --sunk:#222634; --ink:#e7e9f1; --muted:#a2a8bb; --faint:#6f7589; --rule:#2c3142;
+  --accent:#8f9dff; --accent-soft:#262c4f; --done:#4cc98a; --done-soft:#17322a; --part:#f0b14a; --part-soft:#3a2d16;
+  --danger:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12141c; --surface:#1a1d28; --sunk:#222634; --ink:#e7e9f1; --muted:#a2a8bb; --faint:#6f7589; --rule:#2c3142;
+  --accent:#8f9dff; --accent-soft:#262c4f; --done:#4cc98a; --done-soft:#17322a; --part:#f0b14a; --part-soft:#3a2d16;
+  --danger:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:20px 60px}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--f-display);font-weight:650;text-wrap:balance;margin:0}
+
+/* header */
+.projects{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.ptab{font:500 12px/1 var(--f-mono);letter-spacing:.06em;padding:8px 12px;border-radius:999px;border:1px solid var(--rule);color:var(--muted)}
+.ptab[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ptab.add{border-style:dashed;cursor:default}
+.head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:end;padding-bottom:18px;border-bottom:1px solid var(--rule)}
+.head h1{font-size:clamp(28px,4vw,40px);letter-spacing:-.01em}
+.goal{color:var(--muted);max-width:68ch;margin:6px 0 0}
+.status{font:12px/1.4 var(--f-mono);color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:flex-end;text-align:right}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.authbox{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.signin{font-size:13px;font-weight:600;background:var(--accent);color:var(--surface);padding:8px 14px;border-radius:8px}
+@media (max-width:720px){.authbox{align-items:flex-start}}
+.status.live .dot{background:var(--done)} .status.local .dot{background:var(--part)} .status.ro .dot{background:var(--accent)}
+
+.meters{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:28px;padding-block:20px}
+.meter .lbl{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.meter .name{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.meter .val{font:500 15px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+.meter.big .val{font:650 34px/1 var(--f-display)}
+.bar{height:8px;border-radius:999px;background:var(--sunk);margin-top:10px;overflow:hidden}
+.meter.big .bar{height:12px}
+.bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:inherit;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.bar i.full{background:var(--done)}
+.meter .sub{font:12px var(--f-mono);color:var(--faint);margin-top:6px;font-variant-numeric:tabular-nums}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding-block:4px 16px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{font-size:13px;padding:6px 11px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.search{flex:1 1 220px;min-width:0;max-width:340px;font:inherit;font-size:13px;padding:7px 11px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.tbtn{font-size:13px;color:var(--muted);padding:6px 8px;border-radius:6px}
+.tbtn:hover{color:var(--ink);background:var(--sunk)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:28px;align-items:start}
+@media (max-width:1060px){.layout{grid-template-columns:minmax(0,1fr)}.aside{position:static}}
+@media (max-width:720px){.head{grid-template-columns:1fr}.status{justify-content:flex-start;text-align:left}.meters{grid-template-columns:1fr 1fr}.meters .big{grid-column:1/-1}}
+
+/* pillars */
+.pillar{background:var(--surface);border:1px solid var(--rule);border-radius:12px;margin-bottom:22px;overflow:hidden}
+.pillar .prow{padding:16px 16px 14px;border-bottom:1px solid var(--rule)}
+.pillar .prow .title{font:650 22px/1.2 var(--f-display)}
+ul.kids{list-style:none;margin:0;padding:0}
+.pillar>ul.kids{padding:6px 0 10px}
+
+/* rows */
+.row{display:grid;grid-template-columns:22px 24px minmax(0,1fr) auto;gap:6px 8px;align-items:start;padding:7px 14px 7px calc(14px + var(--ind,0px));position:relative}
+.row:hover{background:color-mix(in srgb,var(--sunk) 55%,transparent)}
+.tw{width:22px;height:22px;display:grid;place-items:center;color:var(--faint);border-radius:5px}
+.tw svg{transition:transform .15s}
+.tw[aria-expanded="true"] svg{transform:rotate(90deg)}
+.tw:hover{color:var(--ink);background:var(--sunk)}
+.cb{width:20px;height:20px;margin-top:1px;border-radius:5px;border:1.5px solid var(--faint);display:grid;place-items:center;background:var(--surface);transition:background .15s,border-color .15s}
+.cb svg{opacity:0;transition:opacity .15s}
+.cb[aria-checked="true"]{background:var(--done);border-color:var(--done)}
+.cb[aria-checked="true"] svg.ck{opacity:1;color:var(--surface)}
+.cb[aria-checked="mixed"]{border-color:var(--part);background:var(--part-soft)}
+.cb[aria-checked="mixed"] svg.mx{opacity:1;color:var(--part)}
+.cb:disabled{cursor:default;opacity:.7}
+.tt{min-width:0}
+.tt .title{overflow-wrap:anywhere}
+.lvl1>.row .title{font:650 18px/1.3 var(--f-display)}
+.lvl2>.row .title{font-weight:600}
+.lvl1>.row{padding-top:12px}
+.detail{font-size:13px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.detail code,.nb{font:12px var(--f-mono);background:var(--sunk);padding:1px 5px;border-radius:4px;color:var(--ink)}
+.node.done>.row .title{color:var(--done)}
+.leaf.done>.row .title{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
+.chip{font:600 10.5px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:4px;margin-left:8px;vertical-align:2px;white-space:nowrap}
+.chip.ok{background:var(--done-soft);color:var(--done)}
+.meta{display:flex;align-items:center;gap:10px;padding-top:1px}
+.pct{font:500 12px/1 var(--f-mono);font-variant-numeric:tabular-nums;color:var(--muted);min-width:34px;text-align:right}
+.mini{width:56px;height:4px;border-radius:2px;background:var(--sunk);overflow:hidden}
+.mini i{display:block;height:100%;background:var(--part)}
+.node.done>.row .mini i{background:var(--done)}
+.cm{display:inline-flex;align-items:center;gap:4px;color:var(--faint);padding:3px 5px;border-radius:6px;font:500 12px/1 var(--f-mono)}
+.cm:hover{color:var(--ink);background:var(--sunk)}
+.cm.has{color:var(--accent)}
+.cm .sub{color:var(--faint);font-size:11px}
+.who{font:11px var(--f-mono);color:var(--faint)}
+.kids .kids{position:relative}
+.kids .kids::before{content:"";position:absolute;left:calc(25px + var(--ind,0px));top:0;bottom:6px;width:1px;background:var(--rule)}
+@media (max-width:560px){.row{grid-template-columns:22px 24px minmax(0,1fr)}.meta{grid-column:3;justify-content:flex-start}.mini{display:none}}
+
+/* comments */
+.cpanel{margin:2px 14px 10px calc(60px + var(--ind,0px));border-left:2px solid var(--accent-soft);padding:4px 0 4px 12px}
+.clist{display:flex;flex-direction:column;gap:10px;margin-bottom:10px}
+.c{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px}
+.av{width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);object-fit:cover;display:grid;place-items:center;font:600 11px/1 var(--f-body)}
+.c .h{font-size:12px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;align-items:baseline}
+.c .h b{color:var(--ink);font-weight:600}
+.c .txt{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}
+.c .del{font-size:12px;color:var(--faint)} .c .del:hover{color:var(--danger)}
+.c .del.confirm{color:var(--danger);font-weight:600}
+.cform{display:flex;gap:8px;align-items:flex-end}
+.cform textarea{flex:1;min-width:0;min-height:38px;max-height:180px;resize:vertical;font:inherit;font-size:14px;padding:8px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--surface);color:var(--ink)}
+.post{font-size:13px;font-weight:600;background:var(--accent);color:var(--surface);padding:8px 14px;border-radius:8px}
+.post:disabled{opacity:.45;cursor:default}
+.empty{font-size:13px;color:var(--faint)}
+
+/* aside */
+.aside{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.aside h3{font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:4px 0 12px}
+.act{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.act li{font-size:13px;display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px}
+.act .what{color:var(--muted)}
+.act button{color:var(--accent);text-align:left;overflow-wrap:anywhere}
+.act .q{color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.legend{margin-top:22px;padding-top:14px;border-top:1px solid var(--rule);font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:8px}
+.legend span{display:flex;align-items:center;gap:8px}
+.sw{width:14px;height:14px;border-radius:4px;border:1.5px solid var(--faint);flex:none}
+.sw.d{background:var(--done);border-color:var(--done)} .sw.p{background:var(--part-soft);border-color:var(--part)}
+.note{font-size:13px;color:var(--muted);background:var(--part-soft);border-radius:8px;padding:10px 12px;margin-bottom:16px}
+.note[hidden]{display:none}
+mjx-container{font-size:105%!important}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="projects" id="projects" aria-label="Projects"></nav>
+  <header class="head">
+    <div>
+      <h1 id="pname">CGPP-SCALAR</h1>
+      <p class="goal" id="pgoal"></p>
+    </div>
+    <div class="authbox"><div class="status" id="status"><span class="dot"></span><span id="statusText">Connecting…</span></div><button class="signin" id="signin" hidden>Sign in with Google</button><button class="tbtn" id="signout" hidden>Sign out</button></div>
+  </header>
+  <section class="meters" aria-label="Progress">
+    <div class="meter big"><div class="lbl"><span class="name">Project progress</span><span class="val" id="mTotal">0%</span></div><div class="bar"><i id="bTotal"></i></div><div class="sub" id="sTotal"></div></div>
+    <div class="meter"><div class="lbl"><span class="name">Theory</span><span class="val" id="mT">0%</span></div><div class="bar"><i id="bT"></i></div><div class="sub" id="sT"></div></div>
+    <div class="meter"><div class="lbl"><span class="name">Numerics</span><span class="val" id="mN">0%</span></div><div class="bar"><i id="bN"></i></div><div class="sub" id="sN"></div></div>
+  </section>
+  <p class="note" id="note" hidden></p>
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Show">
+      <button data-f="all" aria-pressed="true">All</button>
+      <button data-f="open" aria-pressed="false">Open</button>
+      <button data-f="done" aria-pressed="false">Done</button>
+      <button data-f="comments" aria-pressed="false">Commented</button>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Find a topic, e.g. Bogoliubov" aria-label="Find a topic">
+    <button class="tbtn" id="expandAll">Expand all</button>
+    <button class="tbtn" id="collapseAll">Collapse all</button>
+  </div>
+  <div class="layout">
+    <main id="tree"></main>
+    <aside class="aside">
+      <h3>Recent activity</h3>
+      <ul class="act" id="activity"><li class="empty" style="display:block">Ticks and comments from you and your guide appear here.</li></ul>
+      <div class="legend">
+        <span><i class="sw d"></i>Done (all items below it done)</span>
+        <span><i class="sw p"></i>In progress (some items below it done)</span>
+        <span><i class="sw"></i>Not started</span>
+        <span>Every level splits its share equally among its items; Theory and Numerics count half each.</span>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+window.MathJax={tex:{inlineMath:[["$","$"]]},svg:{fontCache:"global"},startup:{typeset:false,ready(){MathJax.startup.defaultReady();window.dispatchEvent(new Event("mjx-ready"));}}};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+/* ------------------------------------------------------------------ projects and their outlines
+   Outline syntax: two spaces of indent per level, "- Title :: detail". Ids come from the titles, so keep
+   titles stable once people have ticked or commented (a renamed item starts fresh). */
+const PROJECTS = [{
+  id: "cgpp-scalar",
+  name: "CGPP-SCALAR",
+  goal: "Gravitational production of a conformally coupled massive scalar across a smooth inflation-to-radiation transition: to second order in scalar and tensor metric perturbations, first order in the quartic self-interaction, and their mixing.",
+  outline: `
+- Theory
+  - Homogeneous case
+    - Free field
+      - Setup and background
+        - Action and conformal coupling :: $S=-\\frac12\\int d^4x\\sqrt{-g}\\,[(\\nabla\\Phi)^2+m^2\\Phi^2+\\xi R\\Phi^2]$ with $\\xi=1/6$; units $a_e=H_e=1$
+        - Smooth inflation-to-radiation background :: $h(N)=H/H_e=2^{2/s}(1+e^{sN})^{-2/s}$, $s=8$, $h_\\infty=2^{2/s}$
+        - Time variables :: e-folds $N=\\ln a$, conformal time $d\\tau=dN/(aH)$
+        - Conformal-frame field and mode equation :: $\\chi=a\\Phi$, $\\chi_k''+\\omega_k^2\\chi_k=0$, $\\omega_k^2=k^2+a^2m^2$
+      - Quantization and initial state
+        - Canonical quantization and Wronskian :: $\\chi_k\\chi_k^{*\\prime}-\\chi_k^{*}\\chi_k'=i$
+        - Fourth-order adiabatic (WKB) vacuum :: initial data imposed at $k/(aH)\\gg1$
+        - Bunch-Davies limit in de Sitter
+        - Adiabaticity parameter :: $\\epsilon_{\\rm ad}=|\\omega_k'|/\\omega_k^2$ and where the WKB state is valid
+      - Bogoliubov coefficients
+        - Definition in the instantaneous adiabatic basis :: $|\\alpha_k|^2-|\\beta_k|^2=1$
+        - Late-time freeze-out of the occupation :: $|\\beta_k|^2$ constant once $\\epsilon_{\\rm ad}\\to0$
+        - Radiation era: exact parabolic-cylinder solution :: Weber functions
+        - Instantaneous-transition limit :: Hankel/Weber matching at $N=0$
+        - Light- and heavy-mass analytic limits
+      - Observables
+        - Free energy density vs conformal time :: adiabatic-subtracted $a^4\\langle\\rho\\rangle(\\tau)$
+        - Free energy density spectrum :: $d\\rho/d\\ln k$
+        - Free beta squared vs conformal time :: instantaneous $|\\beta_k(\\tau)|^2$
+        - Free beta squared spectrum :: frozen $|\\beta_k|^2$ against $k$
+        - Free number density vs conformal time :: $a^3n=\\int\\frac{d^3k}{(2\\pi)^3}|\\beta_k|^2$
+        - Free number density spectrum :: $k^3|\\beta_k|^2/2\\pi^2$
+      - Relic abundance
+        - Abundance integral I(m/H)
+        - Reheating convention :: $3M_{\\rm Pl}^2(h_\\infty H_e)^2=\\frac{\\pi^2}{30}g_*T_{\\rm RH}^4$
+        - Yield and relic density :: $Y=C_Y\\,I\\,(T_{\\rm RH}/M_{\\rm Pl})^3/h_\\infty^3$, mapping to $\\Omega_\\chi h^2$
+        - Reheating temperature required for the observed abundance :: $\\Omega_\\chi h^2=0.12$
+    - Quartic interaction
+      - Formulation
+        - Interaction term in the conformal frame :: $\\frac{\\lambda}{24}\\Phi^4\\sqrt{-g}=\\frac{\\lambda}{24}\\phi^4$ (no explicit $a$)
+        - In-in expansion to first order in lambda :: $\\langle\\rho\\rangle_1=-i\\int^{\\tau}dt\\,\\langle[\\rho(\\tau),H_I(t)]\\rangle$
+        - Wick contractions: tadpole and contact terms :: effective mass $M^2+\\frac{\\lambda}{2}\\langle\\phi^2\\rangle$
+        - First order versus self-consistent Hartree
+      - Bare
+        - Divergence structure of the field variance :: quadratic and logarithmic UV divergences of $\\langle\\phi^2\\rangle$
+        - Bare energy density vs conformal time
+        - Bare energy density spectrum
+        - Bare beta squared vs conformal time
+        - Bare beta squared spectrum
+        - Bare number density vs conformal time
+        - Bare number density spectrum
+      - Renormalized
+        - Adiabatic subtraction to fourth order
+        - Counterterms :: $\\delta m^2$, $\\delta\\lambda$, $\\delta\\xi\\,R\\phi^2$ and curvature-squared terms
+        - Renormalization conditions and scale :: choice of $\\mu$ and scheme
+        - Renormalized energy density vs conformal time
+        - Renormalized energy density spectrum
+        - Renormalized beta squared vs conformal time
+        - Renormalized beta squared spectrum
+        - Renormalized number density vs conformal time
+        - Renormalized number density spectrum
+      - Comparison of free, bare and renormalized
+        - First-order response :: $g=(\\delta N/N)/\\lambda$
+        - Scheme dependence and sign change with mass
+        - Light- and heavy-mass behaviour
+        - Perturbativity bound on lambda
+  - Perturbation
+    - Framework
+      - Metric families and gauges :: scalar, Newtonian gauge $ds^2=a^2[(1+2\\psi)d\\tau^2-(1-2\\psi)d\\mathbf{x}^2]$; tensor, TT gauge $h_{ij}$
+      - Action expanded to second order :: derived with ininauto
+      - Energy-density observable :: $\\rho=T_{00}/(-g_{00})$ with the $\\xi=1/6$ improvement term
+      - Canonical Hamiltonian and vertices :: Legendre transform with derivative couplings, $H^{(1)}$, $H^{(2)}$
+      - In-in series with nested commutators :: $\\sum_n(-i)^n\\int\\langle[[\\rho,H(t_1)],\\dots,H(t_n)]\\rangle$
+      - Stochastic metric ensemble :: $A_S=2.1\\times10^{-9}$, $r=0.036$, $q\\in[0.1,0.3]$
+      - Ensemble mean and local RMS observables
+    - First order perturbation
+      - Scalar psi
+        - Vertices H1 and rho1 for psi
+        - First-order in-in terms :: $\\langle\\rho_1\\rangle-i\\langle[\\rho_0,H_1]\\rangle$
+        - Zero mean and local response :: $\\langle\\delta n\\rangle=0$; RMS $\\delta n/n$ and $\\delta\\rho/\\rho$
+      - Tensor h
+        - Vertex and TT projection :: $h_{ij}\\partial_i\\phi\\,\\partial_j\\phi$
+        - First-order in-in terms and selection rules
+        - Local response to tensor modes
+    - Second order perturbation
+      - Scalar psi squared
+        - The four second-order in-in terms :: $\\langle\\rho_2\\rangle$, $-i\\langle[\\rho_1,H_1]\\rangle$, $-i\\langle[\\rho_0,H_2]\\rangle$, $-\\langle[[\\rho_0,H_1],H_1]\\rangle$
+        - Ensemble-averaged number change :: mean $\\delta N/N$ at $O(\\psi^2)$
+        - Redistribution versus net production
+      - Tensor h squared
+        - Second-order in-in terms with TT tensors
+        - Ensemble-averaged number change at O(h squared)
+      - Renormalization at second order :: curvature-dependent counterterms
+    - First order perturbation + Quartic interaction
+      - O(lambda psi) in-in terms
+      - O(lambda h) in-in terms
+      - Zero mean and local RMS at O(lambda psi)
+    - Second order perturbation + Quartic interaction
+      - O(lambda psi squared) in-in terms
+      - O(lambda h squared) in-in terms
+      - Renormalization of the mixed terms :: $\\lambda$ counterterms in the perturbed geometry
+      - Relic density from all orders combined :: ranked against the Planck $1\\sigma$ error on $\\Omega_ch^2$
+- Numerics
+  - Homogeneous case
+    - Free field
+      - Solver infrastructure
+        - Background and aH implementation
+        - Mode solver in e-folds :: adaptive integration from the WKB start
+        - Invariant monitors :: Wronskian and $|\\alpha|^2-|\\beta|^2=1$
+        - Parallel momentum grid on half the cores
+        - Library tests :: <span class="nb">pytest -m "not slow"</span>
+      - Mode evolution
+        - Mode equation runs at three masses :: <span class="nb">mode_equation</span>, $\\tilde m=0.1,1,3$
+        - Exact alpha-beta evolution :: <span class="nb">alpha_beta_exact</span>
+        - First-order adiabatic approximation :: <span class="nb">first_order</span>
+        - Instantaneous-transition comparison :: <span class="nb">instantaneous_transition</span>
+        - Grid and tolerance convergence
+      - Plots
+        - Free energy density vs conformal time
+        - Free energy density spectrum
+        - Free beta squared vs conformal time
+        - Free beta squared spectrum
+        - Free number density vs conformal time
+        - Free number density spectrum
+      - Validation
+        - Analytic limits :: <span class="nb">fig_analytic_limits</span>
+        - de Sitter Bunch-Davies check :: <span class="nb">check_desitter_bunch_davies</span>
+        - Radiation tail, IR periods and UV branch point :: <span class="nb">check_radiation_tail</span>, <span class="nb">check_ir_periods</span>, <span class="nb">check_branch_point_uv</span>
+        - Light-mass abundance validation :: <span class="nb">light_abundance_validation</span>
+      - Abundance and relic density
+        - Abundance scan :: <span class="nb">abundance_scan</span>, about 10 minutes
+        - Relic density figure :: <span class="nb">fig_abundance_relic</span>
+    - Quartic interaction
+      - Solver
+        - Hartree run with fourth-order initial data :: <span class="nb">quartic_hartree_run</span>
+        - Initial-state check :: <span class="nb">check_quartic_initial_state</span>
+        - Linearity in lambda :: <span class="nb">quartic_check</span>
+        - Self-consistent Hartree :: <span class="nb">hartree_selfconsistent</span>
+      - Bare
+        - Bare energy density vs conformal time
+        - Bare energy density spectrum
+        - Bare beta squared vs conformal time
+        - Bare beta squared spectrum
+        - Bare number density vs conformal time
+        - Bare number density spectrum
+      - Renormalized
+        - Renormalized energy density vs conformal time
+        - Renormalized energy density spectrum
+        - Renormalized beta squared vs conformal time
+        - Renormalized beta squared spectrum
+        - Renormalized number density vs conformal time
+        - Renormalized number density spectrum
+      - Comparison of free, bare and renormalized
+        - Overlay plots of the three
+        - Relic density against mass and lambda :: <span class="nb">omega_vs_mass_lambda</span>
+        - Largest perturbative lambda :: <span class="nb">hartree_selfconsistent</span>
+        - Paper figures for the quartic case :: <span class="nb">fig_quartic_energy</span>, <span class="nb">fig_quartic_number</span>
+  - Perturbation
+    - Engines and infrastructure
+      - Mode-source hierarchy engine :: <span class="nb">perturbation_engine</span>
+      - Direct in-in engine :: <span class="nb">inin_engine</span>
+      - Run cache and job queue
+      - Grids :: $q\\in[0.1,0.3]$, $N_{\\rm end}=5.5$, $p_{\\max}=5$, $n_p=40$, $n_\\mu=8$
+      - Convergence study :: <span class="nb">pert_convergence</span>
+      - Engine versus in-in cross-check
+    - First order perturbation
+      - Scalar psi runs and plots :: <span class="nb">pert_1_scalar_h</span>, <span class="nb">inin_1_scalar_h</span>
+      - Tensor h runs and plots :: <span class="nb">pert_2_tensor_h</span>, <span class="nb">inin_2_tensor_h</span>
+      - Freezing and momentum-cutoff checks
+    - Second order perturbation
+      - Scalar psi squared runs and plots :: <span class="nb">pert_3_scalar_h2</span>, <span class="nb">inin_3_scalar_h2</span>
+      - Tensor h squared runs and plots :: <span class="nb">pert_4_tensor_h2</span>, <span class="nb">inin_4_tensor_h2</span>
+      - Summary checks :: <span class="nb">pert_summary</span>
+    - First order perturbation + Quartic interaction
+      - O(lambda psi) and O(lambda h) runs :: <span class="nb">pert_5_lambda_h</span>, <span class="nb">inin_5_lambda_h</span>
+      - Lambda-sigma check :: <span class="nb">pert_lambda_sigma_check</span>
+    - Second order perturbation + Quartic interaction
+      - O(lambda psi squared) and O(lambda h squared) runs :: <span class="nb">pert_6_lambda_h2</span>, <span class="nb">inin_6_lambda_h2</span>
+      - Mass scan :: <span class="nb">pert_mass_scan</span>
+      - Relic density of all combinations :: <span class="nb">final_result</span>
+      - Low-q extension and relic peak validation :: <span class="nb">low_q_extension_validation</span>, <span class="nb">relic_delta_peak_scan</span>
+`
+}];
+
+/* ------------------------------------------------------------------ outline parsing */
+const PRETTY = [[/\bbeta squared\b/g,"β²"],[/\bpsi squared\b/g,"ψ²"],[/\bh squared\b/g,"h²"],[/\blambda\b/g,"λ"],
+  [/\bpsi\b/g,"ψ"],[/\bH1\b/g,"H₁"],[/\brho1\b/g,"ρ₁"]];;
+function pretty(t){ let s=t; for(const [re,r] of PRETTY) s=s.replace(re,r); return s; }
+function slug(t){ return t.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40); }
+function parseOutline(text){
+  const root={id:"root",children:[],depth:-1};
+  const stack=[root];
+  for(const raw of text.split("\n")){
+    if(!raw.trim()) continue;
+    const ind=raw.match(/^ */)[0].length/2;
+    const body=raw.trim().replace(/^- /,"");
+    const [title,detail]=body.split(" :: ");
+    while(stack.length>ind+1) stack.pop();
+    const parent=stack[stack.length-1];
+    const node={title:title.trim(),detail:detail?detail.trim():"",children:[],depth:ind,parent};
+    node.id=(parent.id==="root"?"":parent.id+"~")+slug(node.title);
+    parent.children.push(node); stack.push(node);
+  }
+  return root;
+}
+
+/* ------------------------------------------------------------------ storage backends
+   Shared (Firebase Firestore): one document per project holds the ticks; comments are documents in its
+   "comments" sub-collection. Local (before Firebase is configured): the same data in this browser's localStorage. */
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+          set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+function localBackend(pid){
+  const kT="rt:"+pid+":ticks", kC="rt:"+pid+":comments";
+  let onT=()=>{}, onC=()=>{};
+  return {
+    mode:"local", me:"local", canWrite:true,
+    subscribe(t,c){onT=t;onC=c;t(LS.get(kT,{}));c(LS.get(kC,[]));},
+    async setTicks(patch){const t=LS.get(kT,{});for(const k in patch){if(patch[k])t[k]=patch[k];else delete t[k];}LS.set(kT,t);onT(t);},
+    async addComment(c){const l=LS.get(kC,[]);l.push({...c,id:"c"+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});LS.set(kC,l);onC(l);},
+    async deleteComment(id){const l=LS.get(kC,[]).filter(x=>x.id!==id);LS.set(kC,l);onC(l);}
+  };
+}
+
+function firebaseBackend(pid,fs,me){
+  const ref=fs.collection("trackers").doc(pid);
+  const col=ref.collection("comments");
+  const del=firebase.firestore.FieldValue.delete();
+  let unsub=[];
+  return {
+    mode:"live", me:me.uid, canWrite:true,
+    subscribe(onT,onC,onErr){
+      unsub.push(ref.onSnapshot(s=>onT((s.exists&&s.data().ticks)||{}),onErr));
+      unsub.push(col.orderBy("at").onSnapshot(s=>onC(s.docs.map(d=>({id:d.id,...d.data()}))),onErr));
+    },
+    setTicks(patch){
+      const t={}; for(const k in patch) t[k]=patch[k]?{...patch[k],name:me.name,photo:me.photo}:del;
+      return ref.set({ticks:t},{merge:true});
+    },
+    addComment(c){return col.add({...c,name:me.name,photo:me.photo});},
+    deleteComment(id){return col.doc(id).delete();},
+    stop(){unsub.forEach(u=>u());unsub=[];}
+  };
+}
+
+/* ------------------------------------------------------------------ state */
+let project=PROJECTS[0], tree=null, nodes=new Map(), backend=null;
+let ticks={}, comments=[], names={}, filter="all", query="";
+let expanded=new Set(LS.get("rt:expanded:"+project.id,null)||[]);
+const openPanels=new Set();
+const els=new Map();   // node id -> {li,row,cb,pct,mini,cm,cmN,cmSub,panel,list,kids,tw}
+
+const $=s=>document.querySelector(s);
+const ICON={
+  chev:'<svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M3 1.5 6.5 5 3 8.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ck:'<svg class="ck" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.3 5 8.6 9.6 3.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  mx:'<svg class="mx" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" style="position:absolute"><path d="M3 6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  bubble:'<svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5a1.5 1.5 0 0 1 1.5-1.5h8a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H7l-3 2.5V11h0A1.5 1.5 0 0 1 2.5 9.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>'
+};
+
+/* ------------------------------------------------------------------ progress */
+function leaves(n){ return n.children.length?n.children.flatMap(leaves):[n]; }
+function progress(n,memo){
+  if(memo.has(n.id)) return memo.get(n.id);
+  const p=n.children.length? n.children.reduce((s,c)=>s+progress(c,memo),0)/n.children.length : (ticks[n.id]?1:0);
+  memo.set(n.id,p); return p;
+}
+const FULL=0.99999;
+const pctText=p=>p>=FULL?"100%":p<=0?"0%":(p*100<1?"<1%":Math.floor(p*100)+"%");
+
+/* ------------------------------------------------------------------ build the tree once per project */
+function build(){
+  tree=parseOutline(project.outline); nodes.clear(); els.clear();
+  (function walk(n){ nodes.set(n.id,n); n.children.forEach(walk); })(tree);
+  if(!LS.get("rt:expanded:"+project.id,null)){ expanded=new Set(); for(const p of tree.children){expanded.add(p.id); for(const s of p.children){expanded.add(s.id); s.children.forEach(x=>expanded.add(x.id));}} }
+  const main=$("#tree"); main.textContent="";
+  for(const pillar of tree.children){
+    const sec=document.createElement("section"); sec.className="pillar"; sec.id="p-"+pillar.id;
+    sec.appendChild(makeRow(pillar,true));
+    const ul=document.createElement("ul"); ul.className="kids";
+    pillar.children.forEach(c=>ul.appendChild(makeNode(c)));
+    sec.appendChild(ul); els.get(pillar.id).kids=ul; main.appendChild(sec);
+  }
+  if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([main]).catch(()=>{});
+  else window.addEventListener("mjx-ready",()=>MathJax.typesetPromise([main]).catch(()=>{}),{once:true});
+}
+function makeRow(n,isPillar){
+  const wrap=document.createElement(isPillar?"div":"div");
+  const row=document.createElement("div"); row.className=isPillar?"prow row":"row";
+  row.style.setProperty("--ind",(isPillar?0:(n.depth-1)*22)+"px");
+  const tw=document.createElement("button"); tw.className="tw";
+  if(n.children.length&&!isPillar){tw.innerHTML=ICON.chev;tw.setAttribute("aria-label","Show or hide "+pretty(n.title));tw.onclick=()=>toggleExpand(n.id);}
+  else {tw.tabIndex=-1;tw.setAttribute("aria-hidden","true");tw.style.cursor="default";}
+  const cb=document.createElement("button"); cb.className="cb"; cb.setAttribute("role","checkbox");
+  cb.setAttribute("aria-label",pretty(n.title)); cb.innerHTML=ICON.ck+ICON.mx; cb.style.position="relative";
+  cb.onclick=()=>toggleTick(n);
+  const tt=document.createElement("div"); tt.className="tt";
+  const title=document.createElement("span"); title.className="title"; title.textContent=pretty(n.title);
+  const chip=document.createElement("span"); chip.className="chip ok"; chip.textContent="Complete"; chip.hidden=true;
+  tt.append(title,chip);
+  if(n.detail){const d=document.createElement("div");d.className="detail";d.innerHTML=n.detail;tt.appendChild(d);}
+  const who=document.createElement("div"); who.className="who"; who.hidden=true; tt.appendChild(who);
+  const meta=document.createElement("div"); meta.className="meta";
+  const pct=document.createElement("span"); pct.className="pct";
+  const mini=document.createElement("span"); mini.className="mini"; mini.innerHTML="<i></i>";
+  const cm=document.createElement("button"); cm.className="cm"; cm.innerHTML=ICON.bubble+'<span class="n"></span><span class="sub"></span>';
+  cm.setAttribute("aria-label","Comments on "+pretty(n.title)); cm.onclick=()=>togglePanel(n.id);
+  if(n.children.length) meta.append(pct,mini); meta.append(cm);
+  row.append(tw,cb,tt,meta);
+  els.set(n.id,{row,cb,pct,mini:mini.firstChild,cm,cmN:cm.querySelector(".n"),cmSub:cm.querySelector(".sub"),tw,chip,who,wrap});
+  wrap.appendChild(row);
+  const panel=document.createElement("div"); panel.className="cpanel"; panel.hidden=true;
+  panel.style.setProperty("--ind",(isPillar?0:(n.depth-1)*22)+"px");
+  wrap.appendChild(panel); els.get(n.id).panel=panel;
+  return wrap;
+}
+function makeNode(n){
+  const li=document.createElement("li"); li.className="node lvl"+n.depth+(n.children.length?"":" leaf"); li.dataset.id=n.id;
+  const w=makeRow(n,false); while(w.firstChild) li.appendChild(w.firstChild);
+  const e=els.get(n.id); e.li=li; e.wrap=li;
+  if(n.children.length){
+    const ul=document.createElement("ul"); ul.className="kids"; ul.style.setProperty("--ind",(n.depth-1)*22+"px");
+    n.children.forEach(c=>ul.appendChild(makeNode(c))); li.appendChild(ul); e.kids=ul;
+  }
+  return li;
+}
+
+/* ------------------------------------------------------------------ refresh (state -> DOM, in place) */
+function commentCounts(){
+  const own={}, sub={};
+  for(const c of comments) own[c.node]=(own[c.node]||0)+1;
+  (function walk(n){ let s=own[n.id]||0; for(const k of n.children) s+=walk(k); sub[n.id]=s; return s; })(tree);
+  return {own,sub};
+}
+function matches(n){
+  const q=query.trim().toLowerCase();
+  const text=(pretty(n.title)+" "+n.title+" "+(n.detail||"").replace(/<[^>]+>/g,"")).toLowerCase();
+  return !q||text.includes(q);
+}
+function refresh(){
+  if(!tree) return;
+  resolveNames();
+  const memo=new Map(), cc=commentCounts(), ro=!backend||!backend.canWrite;
+  const visible=new Map();
+  function vis(n){
+    const kidsVis=n.children.map(vis).some(Boolean);
+    let self=matches(n);
+    const p=progress(n,memo);
+    if(filter==="open") self=self&&p<FULL&&!n.children.length;
+    if(filter==="done") self=self&&p>=FULL&&!n.children.length;
+    if(filter==="comments") self=self&&(cc.own[n.id]||0)>0;
+    const v=self||kidsVis; visible.set(n.id,v); return v;
+  }
+  tree.children.forEach(vis);
+  const filtering=filter!=="all"||query.trim();
+  for(const [id,e] of els){
+    const n=nodes.get(id), p=progress(n,memo), leaf=!n.children.length;
+    const state=leaf?(ticks[id]?"true":"false"):(p>=FULL?"true":p>0?"mixed":"false");
+    e.cb.setAttribute("aria-checked",state); e.cb.disabled=ro;
+    const t=ticks[id];
+    e.cb.title=leaf&&t?("Ticked by "+(names[t.by]||"…")+" · "+when(t.at)):(leaf?"Mark as done":"Tick everything below");
+    if(e.li){ e.li.classList.toggle("done",p>=FULL); e.li.hidden=!visible.get(id); }
+    e.chip.hidden=!(p>=FULL&&!leaf);
+    if(!leaf){ e.pct.textContent=pctText(p); e.mini.style.width=(p*100)+"%"; }
+    const own=cc.own[id]||0, sub=cc.sub[id]-own;
+    e.cmN.textContent=own?own:""; e.cmSub.textContent=sub&&!openPanels.has(id)&&!expanded.has(id)?"+"+sub:"";
+    e.cm.classList.toggle("has",own>0);
+    e.cm.title=own?own+" comment"+(own>1?"s":""):"Add a comment";
+    if(leaf&&t){ e.who.hidden=false; e.who.textContent="Done · "+(names[t.by]||"…")+" · "+when(t.at); } else e.who.hidden=true;
+    if(e.kids&&e.tw&&n.depth>0){ const open=filtering?true:expanded.has(id); e.kids.hidden=!open; e.tw.setAttribute("aria-expanded",open); }
+    if(openPanels.has(id)) renderPanel(id);
+  }
+  const T=tree.children[0], N=tree.children[1];
+  const pt=progress(T,memo), pn=progress(N,memo), tot=(pt+pn)/2;
+  setMeter("Total",tot); setMeter("T",pt); setMeter("N",pn);
+  const lt=leaves(T), ln=leaves(N);
+  $("#sTotal").textContent=`${[...lt,...ln].filter(l=>ticks[l.id]).length} of ${lt.length+ln.length} items done · ${comments.length} comment${comments.length===1?"":"s"}`;
+  $("#sT").textContent=`${lt.filter(l=>ticks[l.id]).length} / ${lt.length} items`;
+  $("#sN").textContent=`${ln.filter(l=>ticks[l.id]).length} / ${ln.length} items`;
+  renderActivity();
+}
+function setMeter(k,p){ $("#m"+k).textContent=pctText(p); const b=$("#b"+k); b.style.width=(p*100)+"%"; b.classList.toggle("full",p>=FULL); }
+function when(ts){
+  if(!ts) return ""; const d=new Date(ts), s=(Date.now()-ts)/1000;
+  if(s<60) return "just now"; if(s<3600) return Math.floor(s/60)+" min ago"; if(s<86400) return Math.floor(s/3600)+" h ago";
+  return d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:d.getFullYear()===new Date().getFullYear()?undefined:"numeric"});
+}
+
+/* names and photos travel with each tick and comment */
+function resolveNames(){
+  const me=backend&&backend.me;
+  for(const c of comments){ names[c.by]=c.by===me?"You":(c.name||"Someone"); avatars[c.by]=c.photo||""; }
+  for(const k in ticks){ const v=ticks[k]; if(v&&v.by){ names[v.by]=v.by===me?"You":(v.name||"Someone"); if(v.photo) avatars[v.by]=v.photo; } }
+}
+const avatars={};
+function avatar(id){
+  if(avatars[id]){ const i=document.createElement("img"); i.className="av"; i.alt=""; i.referrerPolicy="no-referrer"; i.src=avatars[id]; return i; }
+  const s=document.createElement("span"); s.className="av"; s.setAttribute("aria-hidden","true"); s.textContent=(names[id]||"?").trim().charAt(0).toUpperCase(); return s;
+}
+
+/* ------------------------------------------------------------------ comment panel */
+function togglePanel(id){
+  const e=els.get(id);
+  if(openPanels.has(id)){ openPanels.delete(id); e.panel.hidden=true; }
+  else { openPanels.add(id); e.panel.hidden=false; renderPanel(id,true); const ta=e.panel.querySelector("textarea"); if(ta&&backend&&backend.canWrite) ta.focus(); }
+}
+function renderPanel(id,first){
+  const e=els.get(id), list=comments.filter(c=>c.node===id);
+  let box=e.panel.querySelector(".clist");
+  if(!box||first){
+    e.panel.textContent="";
+    box=document.createElement("div"); box.className="clist"; e.panel.appendChild(box);
+    if(backend&&backend.canWrite){
+      const form=document.createElement("form"); form.className="cform";
+      const ta=document.createElement("textarea"); ta.id="ta-"+id; ta.rows=1; ta.placeholder="Write a comment…"; ta.setAttribute("aria-label","Comment");
+      const drafts=LS.get("rt:drafts",{}); ta.value=drafts[id]||"";
+      const btn=document.createElement("button"); btn.className="post"; btn.type="submit"; btn.textContent="Post"; btn.disabled=!ta.value.trim();
+      ta.oninput=()=>{btn.disabled=!ta.value.trim(); const d=LS.get("rt:drafts",{}); d[id]=ta.value; LS.set("rt:drafts",d);};
+      ta.onkeydown=ev=>{ if(ev.key==="Enter"&&(ev.metaKey||ev.ctrlKey)){ev.preventDefault();form.requestSubmit();} };
+      form.onsubmit=async ev=>{ ev.preventDefault(); const text=ta.value.trim(); if(!text) return; btn.disabled=true;
+        try{ await backend.addComment({node:id,text,by:backend.me,at:Date.now()}); ta.value=""; const d=LS.get("rt:drafts",{}); delete d[id]; LS.set("rt:drafts",d); }
+        catch(err){ showNote("The comment was not saved: "+(err&&err.code==="quota_exceeded"?"the tracker is full.":"check that you are signed in with an account on the access list.")); btn.disabled=false; } };
+      form.append(ta,btn); e.panel.appendChild(form);
+    }
+  }
+  box.textContent="";
+  if(!list.length){ const p=document.createElement("div"); p.className="empty"; p.textContent=backend&&backend.canWrite?"No comments yet. Start the discussion for this item.":"No comments yet."; box.appendChild(p); return; }
+  for(const c of list){
+    const row=document.createElement("div"); row.className="c";
+    const av=avatar(c.by);
+    const body=document.createElement("div");
+    const h=document.createElement("div"); h.className="h";
+    const b=document.createElement("b"); b.textContent=names[c.by]||"…";
+    const t=document.createElement("span"); t.textContent=when(c.at);
+    h.append(b,t);
+    if(backend&&backend.canWrite&&c.by===backend.me){
+      const del=document.createElement("button"); del.className="del"; del.type="button"; del.textContent="Delete";
+      del.onclick=async()=>{ if(!del.classList.contains("confirm")){del.classList.add("confirm");del.textContent="Delete for everyone?";setTimeout(()=>{del.classList.remove("confirm");del.textContent="Delete";},4000);return;}
+        try{ await backend.deleteComment(c.id); }catch(err){ showNote("The comment could not be deleted."); } };
+      h.appendChild(del);
+    }
+    const txt=document.createElement("div"); txt.className="txt"; txt.textContent=c.text;
+    body.append(h,txt); row.append(av,body); box.appendChild(row);
+  }
+}
+
+/* ------------------------------------------------------------------ actions */
+async function toggleTick(n){
+  if(!backend||!backend.canWrite) return;
+  const ls=leaves(n), allDone=ls.every(l=>ticks[l.id]), patch={}, stamp={by:backend.me,at:Date.now()};
+  for(const l of ls){ if(allDone) patch[l.id]=null; else if(!ticks[l.id]) patch[l.id]=stamp; }
+  const prev={...ticks}; for(const k in patch){ if(patch[k]) ticks[k]=patch[k]; else delete ticks[k]; } refresh();
+  try{ await backend.setTicks(patch); }
+  catch(err){ ticks=prev; refresh(); showNote("That change was not saved. Check that you are signed in with an account on the access list."); }
+}
+function toggleExpand(id){
+  expanded.has(id)?expanded.delete(id):expanded.add(id);
+  LS.set("rt:expanded:"+project.id,[...expanded]); refresh();
+}
+function showNote(t){ const n=$("#note"); n.textContent=t; n.hidden=false; }
+
+function renderActivity(){
+  const ul=$("#activity");
+  const items=[...comments.map(c=>({k:"c",at:c.at,by:c.by,node:c.node,text:c.text})),
+               ...Object.entries(ticks).filter(([k,v])=>v&&nodes.has(k)).map(([k,v])=>({k:"t",at:v.at,by:v.by,node:k}))]
+               .sort((a,b)=>b.at-a.at).slice(0,10);
+  ul.textContent="";
+  if(!items.length){ const li=document.createElement("li"); li.className="empty"; li.style.display="block"; li.textContent="Ticks and comments from you and your guide appear here."; ul.appendChild(li); return; }
+  for(const it of items){
+    const n=nodes.get(it.node); if(!n) continue;
+    const li=document.createElement("li");
+    const av=avatar(it.by);
+    const d=document.createElement("div");
+    const w=document.createElement("div"); w.className="what"; w.textContent=(names[it.by]||"…")+(it.k==="c"?" commented on":" ticked")+" · "+when(it.at);
+    const b=document.createElement("button"); b.textContent=pretty(n.title); b.onclick=()=>reveal(n.id,it.k==="c");
+    d.append(w,b);
+    if(it.k==="c"){ const q=document.createElement("div"); q.className="q"; q.textContent=it.text; d.appendChild(q); }
+    li.append(av,d); ul.appendChild(li);
+  }
+}
+function reveal(id,openComments){
+  let n=nodes.get(id).parent; while(n&&n.id!=="root"){ expanded.add(n.id); n=n.parent; }
+  filter="all"; query=""; $("#q").value=""; document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.f==="all"));
+  if(openComments&&!openPanels.has(id)) togglePanel(id);
+  refresh();
+  const e=els.get(id); e.row.scrollIntoView({behavior:"smooth",block:"center"});
+  const hl=getComputedStyle(document.documentElement).getPropertyValue("--accent-soft").trim(); e.row.animate([{backgroundColor:hl},{backgroundColor:"transparent"}],{duration:1600});
+}
+
+/* ------------------------------------------------------------------ wiring */
+function renderProjects(){
+  const nav=$("#projects"); nav.textContent="";
+  for(const p of PROJECTS){ const b=document.createElement("button"); b.className="ptab"; b.textContent=p.name; b.setAttribute("aria-selected",p.id===project.id); b.onclick=()=>switchProject(p); nav.appendChild(b); }
+  const add=document.createElement("span"); add.className="ptab add"; add.textContent="More projects can be added here"; nav.appendChild(add);
+}
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{ filter=b.dataset.f; document.querySelectorAll(".seg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); refresh(); });
+$("#q").addEventListener("input",e=>{ query=e.target.value; refresh(); });
+$("#expandAll").onclick=()=>{ for(const n of nodes.values()) if(n.children.length&&n.id!=="root") expanded.add(n.id); LS.set("rt:expanded:"+project.id,[...expanded]); refresh(); };
+$("#collapseAll").onclick=()=>{ expanded=new Set(tree.children.map(p=>p.id)); LS.set("rt:expanded:"+project.id,[...expanded]); refresh(); };
+
+function setStatus(kind,text){ const s=$("#status"); s.className="status "+kind; $("#statusText").textContent=text; }
+
+let fs=null, auth=null, me=null;
+const CFG=window.TRACKER_FIREBASE;
+function connect(){
+  if(backend&&backend.stop) backend.stop();
+  ticks={}; comments=[]; names={};
+  if(fs&&me){
+    backend=firebaseBackend(project.id,fs,me);
+    setStatus("live","Shared · signed in as "+me.name);
+  } else if(fs){
+    backend=null; setStatus("ro","Sign in to see and edit the shared tracker"); refresh(); return;
+  } else {
+    backend=localBackend(project.id);
+    setStatus("local","Saved in this browser only (shared database not set up yet)");
+  }
+  backend.subscribe(t=>{ticks={...t};refresh();}, c=>{comments=c.slice();refresh();},
+    err=>{ if(err&&err.code==="permission-denied"){ showNote("Your Google account ("+(me&&me.email)+") is not on this tracker's access list. Ask the owner to add it in firestore.rules."); setStatus("ro","No access for this account"); }
+           else setStatus("ro","Live updates stopped. Reload the page to reconnect."); });
+  refresh();
+}
+function switchProject(p){
+  project=p; expanded=new Set(LS.get("rt:expanded:"+p.id,null)||[]); openPanels.clear();
+  $("#pname").textContent=p.name; $("#pgoal").textContent=p.goal; renderProjects(); build(); connect();
+}
+
+(function start(){
+  $("#pname").textContent=project.name; $("#pgoal").textContent=project.goal; renderProjects(); build();
+  backend=null; refresh();
+  const ok=CFG&&CFG.apiKey&&window.firebase;
+  if(!ok){ connect(); return; }
+  firebase.initializeApp(CFG); auth=firebase.auth(); fs=firebase.firestore();
+  $("#signin").onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>showNote("Sign-in failed: "+e.message));
+  $("#signout").onclick=()=>auth.signOut();
+  auth.onAuthStateChanged(u=>{
+    me=u?{uid:u.uid,name:u.displayName||u.email,email:u.email,photo:u.photoURL||""}:null;
+    $("#signin").hidden=!!u; $("#signout").hidden=!u; $("#note").hidden=true;
+    connect();
+  });
+})();
+setInterval(()=>{ if(tree) refresh(); },60000);   // keep "x min ago" labels current
+</script>
+</body>
+</html>
