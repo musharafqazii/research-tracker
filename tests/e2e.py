@@ -57,6 +57,10 @@ async def main():
         await pn.locator("button:has-text('Send for review')").first.click(); await page.wait_for_timeout(200)
         check("With your guide for review" in await pn.text_content(), "sent for review")
         check(await pn.locator(".strip button").count() == 0, "stage locked while with the guide")
+        await pn.locator("button:has-text('Take it back to keep working')").click(); await page.wait_for_timeout(200)
+        check(await pn.locator(".strip button").count() > 0, "taking it back unlocks the stages")
+        await pn.locator("button:has-text('Send for review')").first.click(); await page.wait_for_timeout(200)
+        check("With your guide for review" in await pn.text_content(), "sent for review again")
 
         # ---- guide reviews
         await role("guide")

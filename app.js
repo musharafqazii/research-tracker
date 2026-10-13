@@ -758,8 +758,9 @@
     const box = h("div", { class: "status-box " + s.tone, dataset: { sec: "status" } },
       h("div", { class: "status-line" }, h("span", { class: "status-text", text: s.text }),
         it.reviewAt && it.review !== "none" ? h("span", { class: "muted small", text: C.ago(it.reviewAt, A.now) }) : null));
-    if (it.note && it.note.text && it.review !== "none") box.append(h("div", { class: "rb-note" }, it.note.text, h("span", { class: "rb-meta", text: " — " + nameOf(it.note) })));
-    else if (it.note && it.note.kind === "legacy") box.append(h("div", { class: "rb-note", text: it.note.text }));
+    if (it.note && it.note.kind === "legacy") box.append(h("div", { class: "rb-note", text: role === "guide" ? it.note.text
+      : "Carried over from the old tracker, where it was marked done. It's waiting for your guide to approve it. To keep working on it instead, take it back." }));
+    else if (it.note && it.note.text && it.review !== "none") box.append(h("div", { class: "rb-note" }, it.note.text, h("span", { class: "rb-meta", text: " — " + nameOf(it.note) })));
     // progress strip: the five work steps, then review and approval
     box.append(h("ol", { class: "strip", "aria-label": "Progress" }, STAGES.map((label, k) => {
       const work = k <= C.LAST_WORK, done = pos !== null && k < pos, cur = k === pos;
@@ -785,7 +786,7 @@
     } else if (role === "guide" && canWrite() && (it.review === "submitted" || it.review === "discussion")) {
       row.append(reviewControls(id));
     } else if (role === "student" && can.withdraw) {
-      row.append(h("span", { class: "muted small", text: "Nothing to do until your guide replies." }));
+      row.append(btn("Take it back to keep working", () => act(id, "withdraw", {})), h("span", { class: "muted small", text: "or wait for your guide to reply. The stages are locked while it's with your guide." }));
     } else if (role === "guide" && it.review !== "approved") {
       row.append(h("span", { class: "muted small", text: it.review === "changes" ? "Back with your student. It returns to you when they send it again." : "Your student sends it for review when it's ready." }));
     }
@@ -881,7 +882,6 @@
     parts.push(h("div", { class: "opt" }, h("label", { class: "toggle" }, h("input", { type: "checkbox", checked: !!it.critical, onchange: ev => act(id, "critical", { on: ev.target.checked }) }),
       h("span", { text: "Critical (a key uncertainty, or on the critical path)" }))));
     const btns = [];
-    if (can.withdraw) btns.push(btn("Take back from review", () => act(id, "withdraw", {})));
     if (can.stage && it.stage !== null) btns.push(btn("Reset to not started", () => act(id, "stage", { to: null }), "ghost"));
     let inv = null;
     if (can.invalidate) {
@@ -902,7 +902,6 @@
     if (guide) parts.push(h("div", { class: "opt" }, h("span", { class: "opt-l", text: "Split it into smaller deliverables" }), addDeliverableForm(n, true)));
     return fold("more:" + id, "More options", h("div", { class: "opts" }, parts), "fold sub");
   }
-
   function renameForm(n) {
     const key = "ren:" + n.id, inp = h("input", { type: "text", maxlength: "200", "aria-label": "New title", dataset: { key } });
     inp.value = drafts.has(key) ? drafts.get(key) : n.title;
@@ -1342,7 +1341,7 @@
   const ev = (type, node, data, at) => backend.add("events", { type, node: node || null, data: data || {}, at: at || Date.now() });
   const L = id => C.labelId(idx, id);
   const crumbOf = id => (idx.nodes.get(id) ? C.crumb(idx.nodes.get(id)) : L(id));
-  const TOAST = { submit: "Sent to your guide for review.", resubmit: "Resent for review.", withdraw: "Withdrawn from review. It's back with you.",
+  const TOAST = { submit: "Sent to your guide for review.", resubmit: "Resent for review.", withdraw: "Taken back. You can change its stage again.",
     approve: "Approved.", changes: "Change request sent.", discuss: "Flagged for discussion.", invalidate: "Marked invalid. It's back for changes and its checks are cleared.",
     blocked: "Marked blocked.", unblocked: "Unblocked.", spec: "Deliverable saved." };
 
