@@ -20,6 +20,13 @@ function run(it, steps) {
 }
 const throwsMsg = (fn, re) => assert.throws(fn, e => e.name === "TransitionError" && re.test(e.userMessage));
 
+test("Garani keeps guide access but receives no email", () => {
+  const garani = P.people.find(p => p.email === "garani@physics.iitm.ac.in");
+  assert.equal(garani.role, "guide");
+  assert.equal(C.shouldEmail(garani), false);
+  assert.equal(C.shouldEmail(P.people.find(p => p.role === "student")), true);
+});
+
 test("the happy path: derive → … → interpret → review → approved", () => {
   let it = C.blankItem();
   assert.equal(C.posOf(it), null);
@@ -36,8 +43,9 @@ test("the happy path: derive → … → interpret → review → approved", () 
   assert.equal(ap.item.updatedRole, "guide");
 });
 
-test("roles: the student can't approve, the guide can't submit", () => {
+test("roles: the student owns work stages; the guide owns review", () => {
   let it = run(C.blankItem(), [[STUDENT, "stage", { to: 4 }]]);
+  throwsMsg(() => C.transition(C.blankItem(), "stage", { to: 0 }, GUIDE), /student moves/i);
   throwsMsg(() => C.transition(it, "approve", {}, STUDENT), /guide/i);
   throwsMsg(() => C.transition(it, "submit", {}, GUIDE), /student/i);
   it = run(it, [[STUDENT, "submit"]]);
@@ -58,7 +66,7 @@ test("stage is locked while with the guide and once approved", () => {
   let it = run(C.blankItem(), [[STUDENT, "stage", { to: 4 }], [STUDENT, "submit"]]);
   throwsMsg(() => C.transition(it, "stage", { to: 2 }, STUDENT), /Withdraw/);
   it = run(it, [[GUIDE, "approve"]]);
-  throwsMsg(() => C.transition(it, "stage", { to: 2 }, GUIDE), /locked/);
+  throwsMsg(() => C.transition(it, "stage", { to: 2 }, STUDENT), /locked/);
   throwsMsg(() => C.transition(it, "block", { reason: "x" }, STUDENT), /Reopen/);
   throwsMsg(() => C.transition(it, "approve", {}, GUIDE), /already approved/);
 });
@@ -147,6 +155,7 @@ test("no-op changes don't produce events", () => {
   assert.equal(C.transition(it, "link", { url: null }, STUDENT), null);
   assert.equal(C.transition(it, "critical", { on: false }, STUDENT), null);
   throwsMsg(() => C.transition(it, "due", { due: "13/10/2026" }, STUDENT), /valid date/);
+  throwsMsg(() => C.transition(it, "due", { due: "2026-02-31" }, STUDENT), /valid date/);
 });
 
 test("toDoc writes every key and nothing else", () => {

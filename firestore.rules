@@ -59,7 +59,7 @@ service cloud.firestore {
                             && d.specName == o.get('specName', '') && d.specAt == o.get('specAt', 0)))
         // the review note only changes together with the review state (no rewriting someone's note)
         && (d.note == o.get('note', null) || d.review != o.get('review', 'none'))
-        && (d.stage == o.get('stage', null) || o.get('review', 'none') in ['none', 'changes'])
+        && (d.stage == o.get('stage', null) || (isStudent() && o.get('review', 'none') in ['none', 'changes']))
         && reviewMove(o.get('review', 'none'), d.review, d)
         && (d.verify == o.get('verify', 'unchecked') || isGuide() || studentVerify(d.verify));
     }

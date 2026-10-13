@@ -64,6 +64,7 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
   function emailKey(e) { return String(e || "").toLowerCase().replace(/[^a-z0-9]/g, "_"); }
+  function shouldEmail(person) { return !!person && person.emails !== false; }
   function textToHtml(text) { return esc(text).replace(/\n/g, "<br>"); }
   const oneLine = s => String(s || "").replace(/\s*\n+\s*/g, " / ").trim();
 
@@ -73,7 +74,11 @@
   function dayDiff(ms, now) { return Math.round((startOfDay(ms) - startOfDay(now)) / DAY); }   // 0 today, 1 tomorrow, -1 yesterday
   function dateKey(ms) { const d = new Date(ms); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
   function parseDateKey(k) { const p = String(k).split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]).getTime(); }
-  function isDateKey(k) { return typeof k === "string" && /^\d{4}-\d{2}-\d{2}$/.test(k) && !isNaN(parseDateKey(k)); }
+  function isDateKey(k) {
+    if (typeof k !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return false;
+    const p = k.split("-").map(Number), d = new Date(p[0], p[1] - 1, p[2]);
+    return d.getFullYear() === p[0] && d.getMonth() === p[1] - 1 && d.getDate() === p[2];
+  }
   // Due dates are stored as calendar days ("2026-11-03") so they mean the same day for everyone;
   // older records stored a timestamp. Both read back as local midnight.
   function dueMs(v) { if (v == null || v === "") return null; if (typeof v === "number") return startOfDay(v); return isDateKey(v) ? parseDateKey(v) : null; }
@@ -317,6 +322,7 @@
     if (!guide && !student) return "This account has no role in this project.";
     switch (action) {
       case "stage":
+        if (!student) return "The student moves work through its stages.";
         if (!working) return r === "approved" ? "It's approved, so it's locked. Your guide can reopen it." : "It's with your guide. Withdraw it from review to keep working on it.";
         if (!(args.to === null || (Number.isInteger(args.to) && args.to >= 0 && args.to <= LAST_WORK))) return "Unknown stage.";
         return null;
@@ -991,7 +997,7 @@
     pretty, slug, clip, esc, plural, emailKey, textToHtml, oneLine,
     startOfDay, addDays, dayDiff, dateKey, parseDateKey, isDateKey, dueMs, weekBounds, fmtDate, fmtDay, fmtTime, fmtWhen, fmtRange, dueLabel, ago, fmtHours,
     parseOutline, buildTree, indexTree, buildIndex, dlvId, leavesOf, pillarOf, trail, crumb, parentCrumb, label, labelId,
-    emptyState, sameActor, roleOfEmail, prefsFor, logTime, decisionDone, decisionText,
+    emptyState, sameActor, roleOfEmail, prefsFor, shouldEmail, logTime, decisionDone, decisionText,
     blankItem, normItem, hasSpec, legacyItem, resolveItems, itemOf, posOf, stageIdx, isApproved, isDone, flagOf, phaseOf, stageText, verifyIdx, leafValue, progress,
     check, transition, actionsFor, toDoc, isMaterial, eventCategory, describeEvent,
     touchMap, unansweredComments, syncPairs, claimStatus, topActions, analyze, recentChanges,

@@ -97,6 +97,13 @@ test("stage is locked while with the guide and after approval", async () => {
   await assertFails(write(GUIDE, "b", Object.assign({}, approved, { stage: 1, updatedBy: GUIDE.uid, updatedRole: "guide" })));
 });
 
+test("only the student moves work stages", async () => {
+  const started = walk([[S, "stage", { to: 1 }]]);
+  await seed("a", started);
+  await assertFails(write(GUIDE, "a", Object.assign({}, started, { stage: 2, updatedBy: GUIDE.uid, updatedRole: "guide" })));
+  await assertSucceeds(write(STUDENT, "a", after(started, S, "stage", { to: 2 })));
+});
+
 test("guide: request changes, flag for discussion, reopen", async () => {
   const sent = walk([[S, "stage", { to: 4 }], [S, "submit"]]);
   await seed("a", sent);

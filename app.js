@@ -1569,7 +1569,7 @@
     if (!EJ || !EJ.publicKey || !window.emailjs || !me || !backend || backend.mode !== "live") return;
     const text = lines.filter(x => x != null && x !== false).join("\n").replace(/\n{3,}/g, "\n\n").trim();
     for (const p of project.people || []) {
-      if (p.emails === false || sameEmail(p.email, me.email) || (onlyRole && p.role !== onlyRole)) continue;
+      if (!C.shouldEmail(p) || sameEmail(p.email, me.email) || (onlyRole && p.role !== onlyRole)) continue;
       const pr = C.prefsFor(st, p.email);
       if (category === "comments" ? pr.comments !== "immediate" : !pr[category]) continue;
       const link = deepLink(nodeId);

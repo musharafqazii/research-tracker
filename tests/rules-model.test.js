@@ -37,10 +37,10 @@ function reviewMove(rb, ra, d, role) {
     || (["submitted", "discussion", "approved"].indexOf(rb) >= 0 && ra === "changes" && d.verify === "unchecked");
 }
 function updateOk(d, o, role) {
-  const guide = role === "guide";
+  const guide = role === "guide", student = role === "student";
   return (guide || (eq(d.spec, get(o, "spec", null)) && d.specBy === get(o, "specBy", null) && d.specName === get(o, "specName", "") && d.specAt === get(o, "specAt", 0)))
     && (eq(d.note, get(o, "note", null)) || d.review !== get(o, "review", "none"))
-    && (d.stage === get(o, "stage", null) || ["none", "changes"].indexOf(get(o, "review", "none")) >= 0)
+    && (d.stage === get(o, "stage", null) || (student && ["none", "changes"].indexOf(get(o, "review", "none")) >= 0))
     && reviewMove(get(o, "review", "none"), d.review, d, role)
     && (d.verify === get(o, "verify", "unchecked") || guide || studentVerify(d.verify));
 }
@@ -92,6 +92,7 @@ test("forged writes are refused", () => {
   assert.equal(allowWrite(as(sent, "student", { stage: 2 }), sent, "student", UID.student), false, "stage moves while with guide");
   assert.equal(allowWrite(as(sent, "guide", { review: "none" }), sent, "guide", UID.guide), false, "guide withdraws");
   const ready = C.toDoc(walk([[S, "stage", { to: 4 }]]));
+  assert.equal(allowWrite(as(ready, "guide", { stage: 2 }), ready, "guide", UID.guide), false, "guide moves student's stage");
   assert.equal(allowWrite(as(ready, "guide", { review: "approved" }), ready, "guide", UID.guide), false, "approve unsent");
   assert.equal(allowWrite(as(ready, "student", { verify: "independent" }), ready, "student", UID.student), false, "student independent check");
   assert.equal(allowWrite(Object.assign(as(ready, "student", {}), { updatedRole: "guide" }), ready, "student", UID.student), false, "role spoof");
