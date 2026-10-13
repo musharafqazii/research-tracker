@@ -11,17 +11,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=6">
+<link rel="stylesheet" href="app.css?v=7">
 <!-- deferred: run in order after the page is parsed, without blocking the first paint -->
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@5.0.3/dist/email.min.js"></script>
-<script defer src="projects.js?v=6"></script>
-<script defer src="core.js?v=6"></script>
-<script defer src="firebase-config.js?v=6"></script>
-<script defer src="email-config.js?v=6"></script>
-<script defer src="app.js?v=6"></script>
+<script defer src="projects.js?v=7"></script>
+<script defer src="core.js?v=7"></script>
+<script defer src="firebase-config.js?v=7"></script>
+<script defer src="email-config.js?v=7"></script>
+<script defer src="app.js?v=7"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -40,16 +40,17 @@
       </div>
       <div class="authbtns">
         <button class="btn primary" id="signin" type="button" hidden>Sign in with Google</button>
-        <button class="btn ghost small" id="prefsBtn" type="button" hidden>Email settings</button>
         <span class="menuwrap">
-          <button class="btn ghost small" id="exportBtn" type="button" aria-haspopup="true" aria-expanded="false">Export ▾</button>
-          <span class="menu" id="exportMenu" role="menu" hidden>
-            <button type="button" role="menuitem" data-export="snapshot">Full snapshot <small>everything, readable (.md)</small></button>
-            <button type="button" role="menuitem" data-export="week">This week's report <small>(.md)</small></button>
-            <button type="button" role="menuitem" data-export="backup">Backup <small>all records, restorable (.json)</small></button>
+          <button class="btn ghost small" id="moreBtn" type="button" aria-haspopup="true" aria-expanded="false">More <span class="badge warn" id="badge-manuscript" hidden></span> ▾</button>
+          <span class="menu" id="moreMenu" role="menu" hidden>
+            <button type="button" role="menuitem" data-act="manuscript">Manuscript claims <small>which results your paper relies on</small></button>
+            <button type="button" role="menuitem" data-act="prefs" id="prefsBtn">Email settings <small>what you get emailed, and when</small></button>
+            <button type="button" role="menuitem" data-act="snapshot">Download everything <small>a readable copy (.md)</small></button>
+            <button type="button" role="menuitem" data-act="week">Download this week's report <small>(.md)</small></button>
+            <button type="button" role="menuitem" data-act="backup">Download a backup <small>all records (.json)</small></button>
+            <button type="button" role="menuitem" data-act="signout" id="signout">Sign out</button>
           </span>
         </span>
-        <button class="btn ghost small" id="signout" type="button" hidden>Sign out</button>
       </div>
     </div>
   </header>
@@ -58,19 +59,16 @@
   <p class="note" id="note" role="alert" hidden></p>
 
   <nav class="tabs" role="tablist" aria-label="Views" id="tabs">
-    <button class="tab" role="tab" type="button" data-view="today" id="tab-today" aria-controls="view-today">Today</button>
-    <button class="tab" role="tab" type="button" data-view="outline" id="tab-outline" aria-controls="view-outline">Outline</button>
-    <button class="tab" role="tab" type="button" data-view="guide" id="tab-guide" aria-controls="view-guide">For guide <span class="badge" id="badge-guide" hidden></span></button>
+    <button class="tab" role="tab" type="button" data-view="today" id="tab-today" aria-controls="view-today">Home <span class="badge" id="badge-today" hidden></span></button>
+    <button class="tab" role="tab" type="button" data-view="outline" id="tab-outline" aria-controls="view-outline">Items</button>
     <button class="tab" role="tab" type="button" data-view="meetings" id="tab-meetings" aria-controls="view-meetings">Meetings <span class="badge" id="badge-meetings" hidden></span></button>
-    <button class="tab" role="tab" type="button" data-view="log" id="tab-log" aria-controls="view-log">Log &amp; report</button>
-    <button class="tab" role="tab" type="button" data-view="manuscript" id="tab-manuscript" aria-controls="view-manuscript">Manuscript <span class="badge warn" id="badge-manuscript" hidden></span></button>
+    <button class="tab" role="tab" type="button" data-view="log" id="tab-log" aria-controls="view-log">Journal</button>
   </nav>
 
   <main id="main" tabindex="-1">
     <section class="view" id="view-today" role="tabpanel" aria-labelledby="tab-today" hidden></section>
     <section class="view" id="view-outline" role="tabpanel" aria-labelledby="tab-outline" hidden></section>
-    <section class="view" id="view-guide" role="tabpanel" aria-labelledby="tab-guide" hidden></section>
-    <section class="view" id="view-meetings" role="tabpanel" aria-labelledby="tab-meetings" hidden></section>
+        <section class="view" id="view-meetings" role="tabpanel" aria-labelledby="tab-meetings" hidden></section>
     <section class="view" id="view-log" role="tabpanel" aria-labelledby="tab-log" hidden></section>
     <section class="view" id="view-manuscript" role="tabpanel" aria-labelledby="tab-manuscript" hidden></section>
     <noscript><p class="loading">This tracker needs JavaScript.</p></noscript>

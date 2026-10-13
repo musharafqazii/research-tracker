@@ -44,30 +44,31 @@ async def main():
         await open_item(LEAF)
         pn = await panel()
         check(await pn.is_visible(), "item panel opens from a deep link")
-        check("hasn't written this deliverable" in await pn.text_content(), "student sees the deliverable is not written")
-        check(await pn.locator(".reviewbox button.ok").count() == 0, "student has no Approve button")
-        check(await pn.locator("button:has-text('Send for review')").first.is_disabled(), "Send for review disabled before Interpret")
-        await pn.locator(".stepper .step", has_text="Derive").click(); await page.wait_for_timeout(120)
-        check(await pn.locator(".step.cur", has_text="Derive").count() == 1, "stage moves to Derive")
-        await pn.locator(".rung", has_text="Regulated").click(); await page.wait_for_timeout(120)
-        check(await pn.locator(".rung.cur", has_text="Regulated").count() == 1, "student records Regulated")
-        check(await pn.locator(".rung", has_text="Independently checked").is_disabled(), "student can't record an independent check")
-        await pn.locator(".stepper .step", has_text="Interpret").click(); await page.wait_for_timeout(120)
+        check("hasn't written this yet" in await pn.text_content(), "student sees the deliverable is not written")
+        check(await pn.locator(".status-box button.ok").count() == 0, "student has no Approve button")
+        await pn.locator("button:has-text('Start: Derive')").click(); await page.wait_for_timeout(120)
+        check(await pn.locator(".strip li.cur", has_text="Derive").count() == 1, "one click starts the item")
+        await pn.locator("button:has-text('Done with Derive')").click(); await page.wait_for_timeout(120)
+        check(await pn.locator(".strip li.cur", has_text="Implement").count() == 1, "next-step button moves it on")
+        await pn.locator(".checksel").select_option("regulated"); await page.wait_for_timeout(120)
+        check(await pn.locator(".checksel").input_value() == "regulated", "student records Regulated")
+        check(await pn.locator(".checksel option[value=independent]").is_disabled(), "student can't record an independent check")
+        await pn.locator(".strip button", has_text="Interpret").click(); await page.wait_for_timeout(120)
         await pn.locator("button:has-text('Send for review')").first.click(); await page.wait_for_timeout(200)
-        check("Waiting for review" in await pn.text_content(), "sent for review")
-        check(await pn.locator(".stepper .step", has_text="Derive").is_disabled(), "stage locked while with the guide")
+        check("With your guide for review" in await pn.text_content(), "sent for review")
+        check(await pn.locator(".strip button").count() == 0, "stage locked while with the guide")
 
         # ---- guide reviews
         await role("guide")
         check((await text("#roleBadge")) == "Guide", "role badge says Guide")
         await page.screenshot(path=f"{SHOTS}/2-review-guide.png", full_page=True)
-        check("Waiting" in await text("#view-guide") or "Free Field" in await text("#view-guide"), "guide's review view lists the item")
+        check("Free Field" in await text("#view-today") and "Review now" in await text("#view-today"), "guide's Home lists the item under Review now")
         await open_item(LEAF); pn = await panel()
         check(await pn.locator("button:has-text('Send for review')").count() == 0, "guide has no Send for review")
-        await pn.locator("button:has-text('Write deliverable')").click(); await page.wait_for_timeout(150)
+        await pn.locator(".spec button:has-text('Write it')").click(); await page.wait_for_timeout(150)
         await pn.locator("textarea[aria-label='What exactly to produce']").fill("|β_k|² for the free field across the transition, k from 1e-3 to 1e2 H, adiabatic order-4 out-state.")
-        await pn.locator("textarea[aria-label='How it will be judged']").fill("Reproduces the sudden limit; initial-time independent to 1%.")
-        await pn.locator("button:has-text('Save deliverable')").click(); await page.wait_for_timeout(200)
+        await pn.locator("textarea[aria-label=\"How you'll judge it (optional)\"]").fill("Reproduces the sudden limit; initial-time independent to 1%.")
+        await pn.locator(".spec button:has-text('Save')").click(); await page.wait_for_timeout(200)
         check("Reproduces the sudden limit" in await pn.text_content(), "guide wrote the deliverable")
         await pn.locator("button:has-text('Request changes…')").click()
         await pn.locator("button:has-text('Send change request')").click(); await page.wait_for_timeout(100)
@@ -79,15 +80,14 @@ async def main():
         # ---- student resubmits, guide approves and checks
         await role("student"); await open_item(LEAF); pn = await panel()
         check("Check the sign of the cross term" in await pn.text_content(), "student sees the change note")
-        await pn.locator("button:has-text('Resend for review')").first.click(); await page.wait_for_timeout(200)
+        await pn.locator("button:has-text('Send for review again')").first.click(); await page.wait_for_timeout(200)
         await role("guide"); await open_item(LEAF); pn = await panel()
         await pn.locator("button.ok.solid:has-text('Approve')").first.click(); await page.wait_for_timeout(200)
-        check("Approved" in await pn.locator(".reviewbox").text_content(), "approved")
+        check("Approved" in await pn.locator(".status-box").text_content(), "approved")
         check("ph-approved" in (await page.get_attribute(f'li[data-id="{LEAF}"] > .row .sg', "class")), "row shows the approved mark")
-        await pn.locator(".rung", has_text="Converged").click(); await page.wait_for_timeout(120)
-        await pn.locator(".rung", has_text="Independently checked").click(); await page.wait_for_timeout(120)
-        await pn.locator(".rung", has_text="Publication-ready").click(); await page.wait_for_timeout(150)
-        check(await pn.locator(".rung.cur", has_text="Publication-ready").count() == 1, "guide records publication-ready")
+        for lvl in ["converged", "independent", "publication"]:
+            await pn.locator(".checksel").select_option(lvl); await page.wait_for_timeout(150)
+        check(await pn.locator(".checksel").input_value() == "publication", "guide records publication-ready")
 
         # ---- guide adds a deliverable under a section
         sec = "theory~perturbation"
@@ -99,12 +99,13 @@ async def main():
 
         # ---- student invalidates the approved result
         await role("student"); await open_item(LEAF); pn = await panel()
-        await pn.locator("button:has-text('Mark result invalid…')").click()
+        await pn.locator("summary", has_text="More options").click()
+        await pn.locator("button:has-text('The result is wrong…')").click()
         await pn.locator("textarea[aria-label=\"What's wrong with the result\"]").fill("The mode sum didn't converge at higher cutoff")
-        await pn.locator("button:has-text('Mark result invalid')").last.click(); await page.wait_for_timeout(200)
+        await pn.locator("button:has-text('Mark result wrong')").last.click(); await page.wait_for_timeout(200)
         t = await pn.text_content()
-        check("Result marked invalid" in t, "invalidated result goes back to the student")
-        check(await pn.locator(".rung.cur", has_text="Unchecked").count() == 1, "its verification is cleared")
+        check("Result marked wrong" in t, "invalidated result goes back to the student")
+        check(await pn.locator(".checksel").input_value() == "unchecked", "its verification is cleared")
 
         # ---- meetings and decisions respect who may answer
         await page.evaluate("location.hash = '#meetings'"); await page.wait_for_timeout(200)
@@ -128,23 +129,23 @@ async def main():
 
         # ---- exports
         async with page.expect_download() as d:
-            await page.click("#exportBtn"); await page.click("#exportMenu button[data-export='snapshot']")
+            await page.click("#moreBtn"); await page.click("#moreMenu button[data-act='snapshot']")
         md = open(await (await d.value).path()).read()
         for needle in ["## Outline and deliverables", "Deliverable: |β_k|²", "## Review history", "requested changes on", "## Decisions", "## Daily log", "## Activity log", "Second-order source term"]:
             check(needle in md, "snapshot contains: " + needle)
         async with page.expect_download() as d:
-            await page.click("#exportBtn"); await page.click("#exportMenu button[data-export='backup']")
+            await page.click("#moreBtn"); await page.click("#moreMenu button[data-act='backup']")
         bk = json.load(open(await (await d.value).path()))
         check(bk["items"][LEAF]["verify"] == "unchecked" and len(bk["events"]) > 10 and len(bk["deliverables"]) == 1, "backup holds items, events and deliverables")
 
         # ---- every view renders for both roles, and nothing scrolls sideways on a phone
         for r in ["student", "guide"]:
             await role(r)
-            for v in ["today", "outline", "guide", "meetings", "log", "manuscript"]:
+            for v in ["today", "outline", "meetings", "log", "manuscript"]:
                 await page.evaluate(f"location.hash = '#{v}'"); await page.wait_for_timeout(120)
                 check(len((await text(f"#view-{v}")).strip()) > 20, f"{r}: {v} renders")
         await page.set_viewport_size({"width": 390, "height": 844})
-        for v in ["today", "outline", "guide", "meetings", "log", "manuscript"]:
+        for v in ["today", "outline", "meetings", "log", "manuscript"]:
             await page.evaluate(f"location.hash = '#{v}'"); await page.wait_for_timeout(150)
             sw = await page.evaluate("document.documentElement.scrollWidth")
             check(sw <= 392, f"phone width: {v} has no sideways scroll ({sw}px)")
