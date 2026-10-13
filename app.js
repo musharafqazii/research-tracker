@@ -62,6 +62,7 @@
   let st = C.emptyState(), A = null;
   const got = {};
   let ready = false, accessDenied = false;
+  const denied = new Set();   // which parts of the database refused us (tells old rules from a wrong account)
   let view = "today", openItem = null, pendingOpen = null, filter = "all", query = "";
   let expanded = new Set();
   const names = {}, avatars = {};
@@ -177,13 +178,13 @@
     return {
       mode: "live", me: user.uid, canWrite: true,
       subscribe(H) {
-        unsub.push(ref.onSnapshot(s => H.onDoc((s.exists && s.data()) || {}), H.onError));
+        unsub.push(ref.onSnapshot(s => H.onDoc((s.exists && s.data()) || {}), e => H.onError(e, "project")));
         for (const c of C.LIST_COLLECTIONS) {
           const q = c === "events" ? ref.collection(c).orderBy("at", "desc").limit(3000) : ref.collection(c).orderBy("at");
-          unsub.push(q.onSnapshot(s => H.onCol(c, s.docs.map(d => Object.assign({ id: d.id }, d.data()))), H.onError));
+          unsub.push(q.onSnapshot(s => H.onCol(c, s.docs.map(d => Object.assign({ id: d.id }, d.data()))), e => H.onError(e, c)));
         }
         for (const c of C.MAP_COLLECTIONS)
-          unsub.push(ref.collection(c).onSnapshot(s => { const m = {}; s.docs.forEach(d => { m[d.id] = d.data(); }); H.onMap(c, m); }, H.onError));
+          unsub.push(ref.collection(c).onSnapshot(s => { const m = {}; s.docs.forEach(d => { m[d.id] = d.data(); }); H.onMap(c, m); }, e => H.onError(e, c)));
       },
       // Reads the item as the server has it, applies the move, and writes the item and its history
       // entry together. If someone else changed it a moment ago, the move is re-checked against that.
@@ -212,9 +213,9 @@
     onDoc(d) { st.legacy = d || {}; got.doc = true; changed(); },
     onCol(c, list) { st[c] = list; got[c] = true; if (c === "deliverables") reindex(); changed(); },
     onMap(c, m) { st[c] = m || {}; got[c] = true; changed(); },
-    onError(err) {
-      console.error(err);
-      if (err && /permission/i.test(String(err.code || err.message))) { accessDenied = true; setStatus("ro", "No access for this account"); }
+    onError(err, what) {
+      console.error("Firestore refused " + (what || "a read") + ":", err);
+      if (err && /permission/i.test(String(err.code || err.message))) { accessDenied = true; denied.add(what || "?"); setStatus("ro", "No access for this account"); }
       else setStatus("ro", "Live updates stopped. Reload the page to reconnect.");
       schedule();
     }
@@ -295,7 +296,8 @@
     gateEl.append(h("h2", { text: "This account can't open the tracker" }),
       h("p", { class: "muted", text: "Signed in as " + (me && me.email) + ". " + (g === "norole"
         ? "Only the student and the guide listed for this project can open it. If you have more than one Google account, switch to your institute one."
-        : "The database refused this account. Check that it's one of the two addresses in firestore.rules and that the latest rules are published.") }),
+        : denied.has("project") ? "The database refused this account entirely. Check that it's one of the two addresses in firestore.rules, then publish the rules again."
+          : "The database let this account in but refused " + [...denied].join(", ") + ". That means the rules published in Firebase are older than this version of the site: open Firebase console → Firestore Database → Rules, paste the whole of firestore.rules from the repository, and click Publish. Then reload.") }),
       h("div", { class: "formbtns", style: "justify-content:center" },
         h("button", { class: "btn primary", type: "button", text: "Use another account", onclick: switchAccount }),
         h("button", { class: "btn", type: "button", text: "Sign out", onclick: () => auth && auth.signOut() })));
@@ -1627,7 +1629,7 @@
   function connect() {
     if (backend && backend.stop) backend.stop();
     st = C.emptyState(); for (const k in got) delete got[k];
-    ready = false; accessDenied = false;
+    ready = false; accessDenied = false; denied.clear();
     idx = C.buildIndex(project, []);
     built = {}; logForm = null; logLoadedReady = false;
     for (const s of $$(".view")) s.textContent = "";
