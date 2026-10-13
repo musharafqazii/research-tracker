@@ -313,6 +313,7 @@
     const pv = $("#rolePreview");
     pv.hidden = !local();
     if (local()) $$("button", pv).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === role)));
+    const rs = $("#resetBtn"); if (rs) rs.hidden = role !== "student" || !canWrite();
     const pillars = $("#pillars"), show = view === "outline" && !gateState();
     pillars.hidden = !show;
     if (show) renderPillars(pillars);
@@ -773,11 +774,15 @@
     const row = h("div", { class: "next" });
     if (role === "student" && canWrite() && (it.review === "none" || it.review === "changes")) {
       if (it.stage === null) row.append(btn("Start: " + STAGES[0], () => act(id, "stage", { to: 0 }), "primary"));
-      else if (it.stage < C.LAST_WORK) row.append(btn("Done with " + STAGES[it.stage] + " → " + STAGES[it.stage + 1], () => act(id, "stage", { to: it.stage + 1 }), "primary"));
-      else {
+      else if (it.stage < C.LAST_WORK) {
+        row.append(btn("Done with " + STAGES[it.stage] + " → " + STAGES[it.stage + 1], () => act(id, "stage", { to: it.stage + 1 }), "primary"));
+        if (it.stage > 0) row.append(btn("← Back to " + STAGES[it.stage - 1], () => act(id, "stage", { to: it.stage - 1 }), "ghost", "Something didn't work? Go back a step."));
+      } else {
+        row.append(btn("← Back to " + STAGES[it.stage - 1], () => act(id, "stage", { to: it.stage - 1 }), "ghost", "Something didn't work? Go back a step."));
         const why = C.check(it, "submit", {}, role);
         const sub = noteForm("sub:" + id, { label: "Note for your guide", placeholder: "Anything your guide should look at first? (optional)", sendText: "Send", onSend: t => act(id, "submit", { note: t }) });
-        row.append(h("button", { class: "btn primary small", type: "button", text: it.review === "changes" ? "Send for review again" : "Send for review", disabled: !!why, title: why || null, onclick: () => act(id, "submit", {}) }),
+        row.prepend(h("button", { class: "btn primary small", type: "button", text: it.review === "changes" ? "Send for review again" : "Send for review", disabled: !!why, title: why || null, onclick: () => act(id, "submit", {}) }));
+        row.append(
           why ? null : h("button", { class: "linkbtn small", type: "button", text: "add a note", onclick: sub.open }));
         box.append(row, sub.form);
         if (why) box.append(h("p", { class: "hintline", text: why }));
@@ -1357,6 +1362,7 @@
     return ok;
   }
   function afterAct(id, e, o) {
+    if (o.silent) return;
     const d = e.data || {}, who = myName(), where = crumbOf(id);
     const t = e.type;
     if (!o.quiet && TOAST[t]) toast(TOAST[t]);
@@ -1385,6 +1391,40 @@
     const url = normalizeUrl(raw);
     if (url === false) { toast("That doesn't look like a web link. Paste the full address, e.g. https://github.com/…", { error: true }); schedule(); return false; }
     return act(id, "link", { url });
+  }
+
+  /* ---------- start every item again from Derive (the student's one-off reset) ---------- */
+  function confirmBox(title, text, okText) {
+    return new Promise(resolve => {
+      const dlg = h("dialog", { class: "confirm" });
+      const done = v => { dlg.close(); dlg.remove(); resolve(v); };
+      dlg.append(h("div", { class: "confirm-body" }, h("h2", { text: title }), h("p", { text }),
+        h("div", { class: "formbtns" }, h("button", { class: "btn ghost", type: "button", text: "Cancel", onclick: () => done(false) }),
+          h("button", { class: "btn primary", type: "button", text: okText, onclick: () => done(true) }))));
+      dlg.addEventListener("cancel", () => done(false));
+      document.body.append(dlg); dlg.showModal();
+    });
+  }
+  async function resetAll() {
+    if (role !== "student" || !canWrite()) { toast("Only the student can restart the items.", { error: true }); return; }
+    const todo = idx.leaves.filter(l => { const it = itemOf(l.id); return it.review !== "approved" && !(it.stage === 0 && it.review === "none" && it.verify === "unchecked"); });
+    const approved = idx.leaves.filter(l => itemOf(l.id).review === "approved");
+    if (!todo.length) { toast(approved.length ? "Everything not approved is already at Derive." : "Everything is already at Derive."); return; }
+    const ok = await confirmBox("Start every item again from Derive?",
+      "This moves " + C.plural(todo.length, "item") + " back to Derive, takes back anything waiting for review, and clears their checks. Deliverables, comments, tasks and history are kept, and a backup is downloaded first." +
+      (approved.length ? " " + C.plural(approved.length, "item") + " your guide has approved stay as they are." : ""), "Start again from Derive");
+    if (!ok) return;
+    exportBackup();
+    let fails = 0;
+    for (const l of todo) {
+      const it = itemOf(l.id), q = { quiet: true, silent: true }, note = "Restarted from Derive";
+      let good = true;
+      if (it.review === "submitted" || it.review === "discussion") good = await act(l.id, "withdraw", { note }, q);
+      if (good && it.verify !== "unchecked") good = await act(l.id, "verify", { to: "unchecked", note }, q);
+      if (good && it.stage !== 0) good = await act(l.id, "stage", { to: 0 }, q);
+      if (!good) fails++;
+    }
+    toast(fails ? "Restarted " + (todo.length - fails) + " of " + todo.length + " items; " + fails + " couldn't be changed." : "All " + C.plural(todo.length, "item") + " are back at Derive.");
   }
 
   /* ---------- deliverables your guide adds under a section ---------- */
@@ -1613,6 +1653,7 @@
     else if (act_ === "week") exportWeek();
     else if (act_ === "backup") exportBackup();
     else if (act_ === "signout") { if (auth) auth.signOut(); }
+    else if (act_ === "reset") resetAll();
   });
   document.addEventListener("click", ev => { const m = $("#moreMenu"); if (!m.hidden && !m.contains(ev.target) && ev.target !== $("#moreBtn")) closeMenu(); });
   $("#rolePreview").addEventListener("click", ev => {

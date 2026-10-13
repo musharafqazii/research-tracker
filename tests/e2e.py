@@ -142,6 +142,28 @@ async def main():
         bk = json.load(open(await (await d.value).path()))
         check(bk["items"][LEAF]["verify"] == "unchecked" and len(bk["events"]) > 10 and len(bk["deliverables"]) == 1, "backup holds items, events and deliverables")
 
+        # ---- going back a step, and restarting everything from Derive
+        await role("student")
+        other = "numerics~homogeneous-case~free-field"
+        await open_item(other)
+        op = page.locator(f'li[data-id="{other}"] > .ipanel')
+        await op.locator("button:has-text('Start: Derive')").click(); await page.wait_for_timeout(120)
+        await op.locator("button:has-text('Done with Derive')").click(); await page.wait_for_timeout(120)
+        await op.locator("button:has-text('Done with Implement')").click(); await page.wait_for_timeout(120)
+        await op.locator("button:has-text('← Back to Implement')").click(); await page.wait_for_timeout(120)
+        check(await op.locator(".strip li.cur", has_text="Implement").count() == 1, "a failed test can go back to Implement")
+        await op.locator(".strip button", has_text="Interpret").click(); await page.wait_for_timeout(120)
+        await op.locator("button:has-text('Send for review')").first.click(); await page.wait_for_timeout(200)
+        async with page.expect_download():
+            await page.click("#moreBtn"); await page.click("#moreMenu button[data-act='reset']")
+            await page.wait_for_timeout(200)
+            await page.click("dialog.confirm button:has-text('Start again from Derive')")
+        await page.wait_for_timeout(600)
+        texts = await page.eval_on_selector_all("li.leaf > .row .spill", "els => els.map(e => e.textContent)")
+        check(all(t.endswith("Derive") for t in texts), "every item is back at Derive: " + ", ".join(sorted(set(texts))))
+        await open_item(other); op = page.locator(f'li[data-id="{other}"] > .ipanel')
+        check(await op.locator(".strip button").count() > 0, "items taken back from review are unlocked")
+
         # ---- every view renders for both roles, and nothing scrolls sideways on a phone
         for r in ["student", "guide"]:
             await role(r)

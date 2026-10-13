@@ -11,17 +11,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="app.css?v=8">
+<link rel="stylesheet" href="app.css?v=9">
 <!-- deferred: run in order after the page is parsed, without blocking the first paint -->
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@5.0.3/dist/email.min.js"></script>
-<script defer src="projects.js?v=8"></script>
-<script defer src="core.js?v=8"></script>
-<script defer src="firebase-config.js?v=8"></script>
-<script defer src="email-config.js?v=8"></script>
-<script defer src="app.js?v=8"></script>
+<script defer src="projects.js?v=9"></script>
+<script defer src="core.js?v=9"></script>
+<script defer src="firebase-config.js?v=9"></script>
+<script defer src="email-config.js?v=9"></script>
+<script defer src="app.js?v=9"></script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -45,6 +45,7 @@
           <span class="menu" id="moreMenu" role="menu" hidden>
             <button type="button" role="menuitem" data-act="manuscript">Manuscript claims <small>which results your paper relies on</small></button>
             <button type="button" role="menuitem" data-act="prefs" id="prefsBtn">Email settings <small>what you get emailed, and when</small></button>
+            <button type="button" role="menuitem" data-act="reset" id="resetBtn" hidden>Start every item again from Derive <small>takes back reviews, keeps comments and history</small></button>
             <button type="button" role="menuitem" data-act="snapshot">Download everything <small>a readable copy (.md)</small></button>
             <button type="button" role="menuitem" data-act="week">Download this week's report <small>(.md)</small></button>
             <button type="button" role="menuitem" data-act="backup">Download a backup <small>all records (.json)</small></button>
