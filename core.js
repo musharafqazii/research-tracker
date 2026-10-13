@@ -724,7 +724,7 @@
       const counts = {}, vcounts = {}; PHASES.forEach(ph => { counts[ph.key] = 0; }); VERIFY.forEach(v => { vcounts[v.key] = 0; });
       const ls = leavesOf(p);
       ls.forEach(l => { counts[phaseOf(st, l.id)]++; vcounts[it(l.id).verify]++; });
-      return { node: p, total: ls.length, counts, vcounts, value: progress(p, st) };
+      return { node: p, total: ls.length, counts, vcounts };
     });
 
     A.withGuide = { reviews: A.awaitingReview, discuss: A.needsDiscussion, decisions: A.openDecisions.filter(d => roleOf(d) !== "guide"),
@@ -835,7 +835,7 @@
     out.push(sec("Verification", r.checksUp.map(c => L(c.node) + " → " + VL(c.to) + (c.by ? " (" + c.by + ")" : "")), "No checks recorded this week."));
     out.push(sec("Failed or invalidated", r.failed.map(f => f.kind + (f.node ? ": " + L(f.node) : "") + (f.text ? " — " + clip(oneLine(f.text), 220) : ""))));
     const total = r.time.theory + r.time.numerics + r.time.other;
-    out.push(sec("Time by workstream", total ? WORKSTREAMS.filter(([k]) => r.time[k]).map(([k, n]) => n + ": " + fmtHours(r.time[k]) + " (" + Math.round(100 * r.time[k] / total) + "%)")
+    out.push(sec("Time by workstream", total ? WORKSTREAMS.filter(([k]) => r.time[k]).map(([k, n]) => n + ": " + fmtHours(r.time[k]))
       .concat(["Total: " + fmtHours(total) + " over " + plural(r.loggedDays, "logged day")]) : [], "No hours logged this week. Add them in the daily log."));
     out.push(sec("Decisions", r.decisions.map(d => "Decided: " + decisionText(d) + (d.text && d.decision && d.decision !== d.text ? " (on: " + clip(d.text, 100) + ")" : ""))
       .concat(r.decisionsOpen.map(d => "Still open: " + d.text)), "No decisions made or pending."));
@@ -939,7 +939,10 @@
     (function walk(n, d) {
       for (const c of n.children) {
         const pad = "  ".repeat(d), leaf = !c.children.length;
-        if (!leaf) { out.push(pad + "- **" + pretty(c.title) + "** — " + Math.round(progress(c, st) * 100) + "% by stage" + (c.dlv ? " (added deliverable group)" : "")); }
+        if (!leaf) {
+          const ls = leavesOf(c), approved = ls.filter(l => isApproved(st, l.id)).length;
+          out.push(pad + "- **" + pretty(c.title) + "** — " + approved + " of " + ls.length + " approved" + (c.dlv ? " (added deliverable group)" : ""));
+        }
         else {
           const x = it(c.id), bits = [stageText(st, c.id), "verification: " + VL(x.verify)];
           if (x.blocked) bits.push("blocked: " + oneLine(x.blocked.reason));

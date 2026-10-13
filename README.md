@@ -55,7 +55,9 @@ the app or put them in `projects.js` (two spaces of indent per level).
   request-changes buttons inline.
 - **Meetings**: propose and confirm times, questions for the next meeting, and decisions. A decision
   you ask for is made by the other person.
-- **Log & report**: the daily research log (with hours by workstream) and the weekly report.
+- **Log & report**: the daily research log (with hours by workstream) and the weekly report. “Mine”
+  shows only your entries; “Both of us” is a read-only combined view. **Clear my journal** downloads a
+  backup and deletes only entries written by the signed-in person.
 - **Manuscript**: claims linked to the results they rest on, flagged when that evidence changes.
 
 The header shows your role. If Firebase isn't set up (or you open `index.html` straight from disk), the

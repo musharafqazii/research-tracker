@@ -71,7 +71,7 @@ async def main():
         check(await pn.locator("button:has-text('Send for review')").count() == 0, "guide has no Send for review")
         await pn.locator(".spec button:has-text('Write it')").click(); await page.wait_for_timeout(150)
         await pn.locator("textarea[aria-label='What exactly to produce']").fill("|β_k|² for the free field across the transition, k from 1e-3 to 1e2 H, adiabatic order-4 out-state.")
-        await pn.locator("textarea[aria-label=\"How you'll judge it (optional)\"]").fill("Reproduces the sudden limit; initial-time independent to 1%.")
+        await pn.locator("textarea[aria-label=\"How you'll judge it (optional)\"]").fill("Reproduces the sudden limit; stable when the initial time is varied.")
         await pn.locator(".spec button:has-text('Save')").click(); await page.wait_for_timeout(200)
         check("Reproduces the sudden limit" in await pn.text_content(), "guide wrote the deliverable")
         await pn.locator("button:has-text('Request changes…')").click()
@@ -186,6 +186,17 @@ async def main():
         check(await pn.locator(".hlist li").count() > 0, "item history is untouched by clearing the feed")
         await page.click("#toasts .toast button:has-text('Undo')") if await page.locator("#toasts .toast button:has-text('Undo')").count() else None
         await page.wait_for_timeout(200)
+
+        # ---- each person can clear only their own journal, after a backup
+        await page.evaluate("location.hash = '#log'"); await page.wait_for_timeout(200)
+        check(await page.locator("#clearJournal").is_enabled(), "clear-my-journal is available when I have entries")
+        await page.click("#clearJournal")
+        check("you wrote" in (await page.locator("dialog.confirm").text_content()).lower(), "journal confirmation states the ownership boundary")
+        async with page.expect_download():
+            await page.click("dialog.confirm button:has-text('Clear my journal')")
+        await page.wait_for_timeout(300)
+        check(await page.locator("#logEntries .logcard").count() == 0, "my journal entries are cleared")
+        check(await page.locator("#clearJournal").is_disabled(), "clear-my-journal disables when my journal is empty")
 
         # ---- every view renders for both roles, and nothing scrolls sideways on a phone
         for r in ["student", "guide"]:

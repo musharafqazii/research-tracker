@@ -289,6 +289,7 @@ test("the weekly report covers every record type", () => {
   for (const needle of ["Check the sign", "Use adiabatic order 4", "Which initial time?", "Trace anomaly term?", "Theory: 3 h", "Numerics: 2.5 h",
     "the integrator blew up", "Rerun at higher N", "Waiting for cluster time", "wrote the deliverable", "Stale:", "Held ", "1 comment"])
     assert.ok(text.indexOf(needle) >= 0, "weekly report is missing: " + needle);
+  assert.equal(text.includes("%"), false, "weekly report contains no percentages");
 });
 
 test("the snapshot export contains every record type", () => {
@@ -298,6 +299,7 @@ test("the snapshot export contains every record type", () => {
     "## Review history", "requested changes on", "## Decisions", "Open since", "## Questions", "[answered]", "## Meetings", "## Manuscript claims", "**stale**",
     "## Daily log", "Theory 3 h", "## Activity log", "## Email settings", "comments immediate", "Old deliverable (archived)", "task: Rerun at higher N", "> Musharaf"])
     assert.ok(md.indexOf(needle) >= 0, "snapshot is missing: " + needle);
+  assert.equal(md.includes("%"), false, "snapshot contains no percentages");
 });
 
 test("daily digest: reminders for the right person, nothing about your own changes", () => {

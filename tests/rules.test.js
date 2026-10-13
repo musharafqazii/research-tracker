@@ -133,7 +133,7 @@ test("only the guide writes the deliverable", async () => {
   const it = walk([[S, "stage", { to: 1 }]]);
   await seed("a", it);
   await assertFails(write(STUDENT, "a", Object.assign({}, it, { spec: { what: "mine", acceptance: "", artifacts: "" }, updatedBy: STUDENT.uid, updatedRole: "student" })));
-  const spec = after(it, G, "spec", { what: "Compute n_k(η) to 1%", acceptance: "Matches sudden limit", artifacts: "nb" });
+  const spec = after(it, G, "spec", { what: "Compute n_k(η) within the agreed tolerance", acceptance: "Matches sudden limit", artifacts: "nb" });
   await assertSucceeds(write(GUIDE, "a", spec));
   await seed("a", spec);
   // the student can still move the stage without touching the spec

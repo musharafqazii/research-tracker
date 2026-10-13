@@ -55,7 +55,6 @@
     try { const u = new URL(s); return u.protocol === "http:" || u.protocol === "https:" ? u.href : false; } catch (e) { return false; }
   }
   const safeUrl = s => normalizeUrl(s) || null;
-  const pctText = p => (p >= 0.99999 ? "100%" : p <= 0 ? "0%" : p < 0.01 ? "<1%" : Math.floor(p * 100) + "%");
 
   /* =================================================================== state */
   let project = PROJECTS[0], idx = null, backend = null, me = null, role = null;
@@ -627,15 +626,14 @@
     const tt = h("div", { class: "tt" }, title, chips);
     if (n.detail) { const d = h("div", { class: "detail muted small" }); d.textContent = n.detail; tt.append(d); }
     const meta = h("div", { class: "meta" });
-    let pct = null, mini = null, spill = null;
-    if (n.children.length) { pct = h("span", { class: "pct", title: "Average position along the workflow" }); mini = h("span", { class: "mini" }, h("i")); meta.append(pct, mini); }
-    else { spill = h("span", { class: "spill" }); meta.append(spill); }
+    let spill = null;
+    if (!n.children.length) { spill = h("span", { class: "spill" }); meta.append(spill); }
     const cm = h("button", { class: "cm", type: "button", onclick: () => toggleItem(n.id, "comments") });
     cm.append(svg(ICON.bubble), h("span", { class: "n" }));
     meta.append(cm);
     row.append(tw, sg, tt, meta);
     const panel = h("div", { class: "ipanel", hidden: true, style: "--ind:" + ind + "px", role: "region", "aria-label": pretty(n.title) });
-    els.set(n.id, { row, tw, sg, title, chips, pct, mini: mini && mini.firstChild, spill, cm, cmN: cm.lastChild, panel });
+    els.set(n.id, { row, tw, sg, title, chips, spill, cm, cmN: cm.lastChild, panel });
     return [row, panel];
   }
   function makeNode(n) {
@@ -650,7 +648,7 @@
   }
   function updateTree() {
     if (!built.outline) return;
-    const memo = new Map(), now = Date.now(), q = query.trim().toLowerCase();
+    const now = Date.now(), q = query.trim().toLowerCase();
     const cc = {}; for (const c of st.comments) cc[c.node] = (cc[c.node] || 0) + 1;
     const openTasks = {}; for (const t of st.tasks) if (!t.done) openTasks[t.node] = (openTasks[t.node] || 0) + 1;
     const passes = n => {
@@ -674,14 +672,15 @@
     let shown = 0;
     for (const [id, e] of els) {
       const n = idx.nodes.get(id); if (!n) continue;
-      const leaf = !n.children.length, p = C.progress(n, st, memo);
-      const done = leaf ? C.isApproved(st, id) : C.leavesOf(n).every(l => C.isApproved(st, l.id));
-      const ph = leaf ? C.phaseOf(st, id) : done ? "approved" : p > 0 ? "work" : "none";
+      const leaf = !n.children.length, sectionLeaves = leaf ? [] : C.leavesOf(n);
+      const approved = leaf ? 0 : sectionLeaves.filter(l => C.isApproved(st, l.id)).length;
+      const done = leaf ? C.isApproved(st, id) : sectionLeaves.length > 0 && approved === sectionLeaves.length;
+      const started = leaf ? false : sectionLeaves.some(l => C.posOf(C.itemOf(st, l.id)) !== null);
+      const ph = leaf ? C.phaseOf(st, id) : done ? "approved" : started ? "work" : "none";
       e.sg.className = "sg ph-" + ph + (leaf ? "" : " sec");
-      e.sg.setAttribute("aria-label", leaf ? stageText(id) : done ? "Everything under it approved" : pctText(p) + " along the workflow");
+      e.sg.setAttribute("aria-label", leaf ? stageText(id) : done ? "Everything under it approved" : approved + " of " + sectionLeaves.length + " approved");
       if (e.li) { e.li.hidden = !visible.get(id); e.li.classList.toggle("done", done); e.li.classList.toggle("approved", leaf && done); if (leaf && visible.get(id)) shown++; }
-      if (!leaf) { e.pct.textContent = pctText(p); e.mini.style.width = (p * 100) + "%"; }
-      else { e.spill.className = "spill ph-" + ph; e.spill.textContent = stageText(id); }
+      if (leaf) { e.spill.className = "spill ph-" + ph; e.spill.textContent = stageText(id); }
       rowChips(e.chips, id, leaf, now);
       const nC = cc[id] || 0;
       e.cmN.textContent = nC ? String(nC) : ""; e.cm.classList.toggle("has", nC > 0);
@@ -815,7 +814,7 @@
       const clear = () => { for (const k of ["what", "acceptance", "artifacts"]) drafts.delete(key(k)); openEdits.delete("spec:" + id); };
       box.append(h("div", { class: "form" },
         field("what", "What exactly to produce", "e.g. |β_k|² for the free field across the transition, k from 10⁻³ to 10² H.", 3),
-        field("acceptance", "How you'll judge it (optional)", "e.g. reproduces the sudden-transition limit; independent of the initial time to 1%.", 2),
+        field("acceptance", "How you'll judge it (optional)", "e.g. reproduces the sudden-transition limit; stable when the initial time is varied.", 2),
         field("artifacts", "What to hand in (optional)", "e.g. notebook and one figure", 1),
         h("div", { class: "formbtns" },
           btn("Cancel", () => { clear(); schedule(); }, "ghost"),
@@ -1242,10 +1241,11 @@
       btn("Download .md", () => lastReport && download(project.id + "-week-" + C.dateKey(lastReport.window.start) + ".md", C.reportMarkdown(lastReport, project.name), "text/markdown")));
     const seg = h("div", { class: "seg", role: "group", "aria-label": "Whose entries", style: "margin-left:auto" }, [["mine", "Mine"], ["all", "Both of us"]].map(([k, t]) =>
       h("button", { type: "button", "aria-pressed": String(logFilter === k), dataset: { f: k }, text: t, onclick: ev => { logFilter = k; $$("button", ev.target.parentNode).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.f === k))); updateLog(); } })));
+    const clearJournal = h("button", { class: "btn small warn", type: "button", id: "clearJournal", text: "Clear my journal", onclick: clearMyJournal });
     root.append(h("div", { class: "logwrap" },
       h("section", { class: "panel" }, h("h3", { text: "Daily log" }), h("p", { class: "panel-lede", text: "Two minutes at the end of the day. It feeds the weekly report, time by workstream, and tomorrow's first action on the Today page." }), form),
       h("section", { class: "panel" }, h("h3", { text: "Weekly report" }), h("p", { class: "panel-lede", text: "Built from every record: reviews, checks, deliverables, decisions, questions, meetings, tasks, claims and the daily log. Emailed on Sunday evenings to anyone who has it switched on." }), nav, h("div", { class: "report", id: "report" }))),
-      h("section", { class: "panel", style: "margin-top:14px" }, h("h3", null, "Past entries", seg), h("div", { id: "logEntries" })));
+      h("section", { class: "panel", style: "margin-top:14px" }, h("h3", null, "Past entries", clearJournal, seg), h("div", { id: "logEntries" })));
     built.log = true;
   }
   function updateLog() {
@@ -1266,6 +1266,8 @@
       box.append(s.lines.length ? h("ul", null, s.lines.map(l => h("li", { text: l }))) : h("p", { text: s.empty }));
     }
     const list = st.logs.filter(l => logFilter === "all" || C.sameActor(l, whoAmI())).sort((a, b) => C.logTime(b) - C.logTime(a) || b.at - a.at);
+    const clearJournal = $("#clearJournal");
+    if (clearJournal) clearJournal.disabled = !st.logs.some(l => C.sameActor(l, whoAmI()));
     const le = $("#logEntries"); le.textContent = "";
     if (!list.length) { le.append(h("p", { class: "muted small", text: logFilter === "all" ? "No entries yet." : "No entries from you yet. The first one takes two minutes." })); return; }
     const FIELDS = [["intended", "Intended"], ["actual", "Did"], ["produced", "Produced"], ["failed", "Failed"], ["learned", "Learned"], ["blocker", "Blocker"], ["tomorrow", "First action next"]];
@@ -1449,6 +1451,32 @@
     let fails = 0;
     for (const e of mine) { try { await backend.remove("events", e.id); } catch (err) { fails++; console.error(err); } }
     if (fails) fail({ code: "permission-denied" }); else toast("History cleared.");
+  }
+
+  // Journal ownership is the same as editing: each person can clear only entries they wrote.
+  async function clearMyJournal() {
+    const mine = st.logs.filter(l => C.sameActor(l, whoAmI()));
+    if (!mine.length) { toast("Your journal is already empty."); return; }
+    const others = st.logs.length - mine.length;
+    const ok = await confirmBox("Clear your journal?",
+      "This permanently deletes " + C.plural(mine.length, "journal entry", "journal entries") + " you wrote." +
+      (others ? " " + C.plural(others, "entry", "entries") + " by " + otherLabel() + " stay." : "") +
+      " A full backup is downloaded first.", "Clear my journal");
+    if (!ok) return;
+    exportBackup();
+    const removed = [], failed = [];
+    for (const l of mine) {
+      try { await backend.remove("logs", l.id); removed.push(l.id); }
+      catch (err) { failed.push(err); console.error(err); }
+    }
+    if (removed.length) {
+      const ids = new Set(removed);
+      st.logs = st.logs.filter(l => !ids.has(l.id));
+      if (logForm) logForm.load(logForm.current());
+      updateLog();
+    }
+    if (failed.length) fail(failed[0]);
+    else toast("Your journal was cleared. " + (others ? otherLabel() + "'s entries were kept." : ""));
   }
 
   /* ---------- deliverables your guide adds under a section ---------- */
