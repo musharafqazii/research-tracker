@@ -10,9 +10,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function email() { return request.auth.token.email.lower(); }
-    // The guide is switched off for now: nobody signs in as guide. To add them back, replace `false` with
-    //   request.auth != null && email() == 'garani@physics.iitm.ac.in'
-    function isGuide() { return false; }
+    function isGuide() { return request.auth != null && email() == 'garani@physics.iitm.ac.in'; }
     function isStudent() { return request.auth != null && email() == 'musharafqazi@physics.iitm.ac.in'; }
     function allowed() { return isGuide() || isStudent(); }
     function myRole() { return isGuide() ? 'guide' : 'student'; }

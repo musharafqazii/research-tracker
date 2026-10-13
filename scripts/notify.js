@@ -52,6 +52,7 @@ async function runProject(db, project, now) {
   C.resolveItems(idx, st);
   let failures = 0;
   for (const person of project.people || []) {
+    if (person.emails === false) { console.log("Emails are switched off for " + person.email + "."); continue; }
     const prefs = C.prefsFor(st, person.email);
     try {
       if (MODE === "weekly") {
