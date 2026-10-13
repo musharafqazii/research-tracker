@@ -1,171 +1,137 @@
-# Research Tracker
+# Research tracker
 
-A one-page progress tracker for research projects, shared between a student and a supervisor.
-Every item of the project outline (Theory and Numerics, down to individual derivations, runs and plots)
-has a tick box and a comment thread. Progress rolls up level by level: each level shares its parent's weight
-equally among its items, and Theory and Numerics count half each. Ticks and comments are stored in a free
-Firebase Firestore database and appear live for both people; sign-in is with Google accounts, and only the
-addresses listed in `firestore.rules` can read or write.
+A shared tracker for a PhD project between a student and a guide. Every deliverable in the outline
+has one record: where the work is, whether the guide has signed it off, and how far the result has been
+checked. Both of you see the same live data; each of you can only make the moves that are yours.
 
-Projects: **CGPP-SCALAR** (more can be added to the `PROJECTS` list in `index.html`).
+Project: **CGPP-SCALAR**. Live at https://musharafqazii.github.io/research-tracker/
 
-## One-time setup (about 10 minutes)
+## How an item moves
 
-1. **Firebase project** (free Spark plan): go to https://console.firebase.google.com, *Add project*
-   (Google Analytics is not needed).
-2. **Database**: *Build → Firestore Database → Create database* (production mode, any location).
-3. **Sign-in**: *Build → Authentication → Get started → Sign-in method → Google → Enable*.
-4. **Web app config**: *Project settings → General → Your apps → Web (</>)*, register an app (no hosting),
-   copy the `firebaseConfig` object into `firebase-config.js` as `window.TRACKER_FIREBASE = {...}`.
-5. **Access list**: put your Google address and your guide's in `firestore.rules`, then paste the file into
-   *Firestore Database → Rules* and *Publish*.
-6. **GitHub Pages**: push this folder to a GitHub repository, then *Settings → Pages → Deploy from a branch →
-   main / (root)*. The site appears at `https://<username>.github.io/<repo>/`.
-7. **Authorized domain**: *Authentication → Settings → Authorized domains → Add domain* →
-   `<username>.github.io`.
+```
+Derive → Implement → Test → Produce artifact → Interpret → Guide review → Approved
+└──────────── the student's work stages ──────────────┘   └─── the guide's ───┘
+```
 
-Open the site, click **Sign in with Google**, and share the link with your guide.
-To add someone later, add their address to `firestore.rules` and publish the rules again.
+- The student moves an item through the five work stages and, from **Interpret**, sends it for review
+  (optionally with a note). Unfinished or blocked work can't be sent.
+- While it's with the guide, its stage is locked. The student can **withdraw** it to keep working.
+- The guide **approves**, **requests changes** (a note is required), or **flags it for discussion**
+  (then approves or requests changes after talking).
+- Changes requested → the item is back with the student, who reworks it and **resends** it.
+- **Approved** is locked. Only the guide can reopen it (which is a change request with a note).
+- Nothing counts as done until it's approved. There are no tick boxes any more.
+- Either of you can **mark a result invalid** (a note is required): it goes back for changes and its
+  verification is cleared. Invalidated results show up in the weekly report under "Failed or invalidated".
 
-## Comment email notifications (optional, free)
+## Verification (separate from review)
 
-When someone posts a comment, the other listed person can get an email automatically, using
-[EmailJS](https://www.emailjs.com) (free tier, no credit card, sends straight from the browser —
-no server needed).
+`Unchecked → Regulated → Converged → Independently checked → Publication-ready`
 
-1. Sign up free at https://www.emailjs.com.
-2. **Email Services → Add New Service**: connect the Gmail/Outlook account that should send these
-   (this becomes the "from" address). Note its **Service ID**.
-3. **Email Templates → Create New Template**. Set the "To email" field to `{{to_email}}`, and use
-   `{{from_name}}`, `{{project}}`, `{{section}}`, `{{message}}` and `{{link}}` in the subject/body,
-   e.g. subject `{{from_name}} commented on {{project}}` and body including
-   `{{section}}: {{message}}` and a link `{{link}}`. Note its **Template ID**.
-4. **Account → General → Public Key**: copy it.
-5. Paste all three into `email-config.js` as `window.TRACKER_EMAILJS = {publicKey, serviceId, templateId}`.
+- The student can record Regulated and Converged. **Independently checked** and **Publication-ready**
+  are the guide's call. Publication-ready needs the item to be approved.
+- Lowering a level needs a reason. Requesting changes on an independently checked result resets it to
+  Converged, because the result is about to change.
 
-While `email-config.js` is left as `null`, comments still work normally — notifications are just skipped.
+## Deliverables (written by the guide)
 
-## Editing the outline
+Each item has a **Deliverable** block at the top of its panel: what exactly to produce, how it will be
+judged, and the expected artifacts. Only the guide can write or edit it. The Today and Review pages list
+items that don't have one yet, with items where work has already started first.
 
-The outline is plain text in `index.html` (`outline:` inside `PROJECTS`): two spaces of indent per level,
-`- Title :: detail` (the detail may contain `$...$` math). Ticks and comments are keyed by the titles, so
-renaming an item starts it fresh; adding or removing items is safe.
+The guide can also **add deliverables** under any section, or split an item into smaller deliverables,
+straight from the Outline (open the section, "Add a deliverable here"). They can be renamed and archived
+(never deleted, so history stays readable). To expand the CGPP outline in bulk, either add the items in
+the app or put them in `projects.js` (two spaces of indent per level).
 
-Before step 4 the page runs in local mode: everything is saved in your browser only.
+## The pages
 
-## Meetings
+- **Today**: your three most important actions, what's blocked, what's with your guide or student,
+  what changed this week, deadlines, results not yet independently checked, deliverables not yet
+  written, manuscript claims on stale evidence, and whether Theory and Numerics are in step.
+- **Outline**: the full tree. Click an item for its deliverable, workflow, verification, details, tasks,
+  comments and history. Filters: open, with guide, flagged, not checked, approved.
+- **Review** (called *For guide* for the student): the guide's focused view, with approve and
+  request-changes buttons inline.
+- **Meetings**: propose and confirm times, questions for the next meeting, and decisions. A decision
+  you ask for is made by the other person.
+- **Log & report**: the daily research log (with hours by workstream) and the weekly report.
+- **Manuscript**: claims linked to the results they rest on, flagged when that evidence changes.
 
-Click **Meetings** in the toolbar to open a small scheduler: either person can propose a date/time
-with an optional multi-line agenda, the other can **Confirm** or **Decline** it, and a confirmed meeting
-gets an **Add to calendar** button that downloads a `.ics` file you can open in Google Calendar, Apple
-Calendar, Outlook, etc. Meetings are stored the same way as ticks and comments (shared Firestore, or this
-browser only before Firebase is set up), and proposing or responding to a meeting sends the other person
-an email if comment notifications are configured (see above) — it reuses the same EmailJS template.
+The header shows your role. If Firebase isn't set up (or you open `index.html` straight from disk), the
+tracker runs in a browser-only preview with a Student/Guide switch, so you can try both sides.
 
-## Due dates
+## Email
 
-Every leaf item (the actual work items at the bottom of the tree) has a **+ Due** button next to it.
-Click it to pick a date; the button turns into a chip showing the date, amber if it's due within 7 days,
-red if it's overdue, and green once the item is ticked. Click the chip again to change or clear the date.
-Due dates are stored on the same shared document as ticks, so no extra Firebase setup is needed.
+What arrives right away (each person turns these on or off under **Email settings**):
+review requests, approvals, change requests, invalidations and independent checks; deliverables
+written or added; blockers; decisions; meeting changes; comments only if you choose "right away".
+Your own changes never email you.
 
-## Notebook / file links
+Scheduled (GitHub Actions, `.github/workflows/weekly-digest.yml`):
+- **Daily digest** at 07:00 IST, only on days with something to say: reminders when a review or a
+  change request has waited 3+ days, deadline warnings (2 days before, on the day, the day after), and
+  the other person's routine activity.
+- **Weekly report** on Sunday at 19:00 IST: completed, sent for review, active, new results,
+  verification, failed or invalidated, time by workstream, decisions, questions, meetings, deliverables,
+  tasks, manuscript claims, blockers, discussion, and the plan for next week.
 
-Leaf items also have a **+ Link** button for pointing at the actual code, notebook, or writeup for that
-item — paste a URL (a GitHub file, a Colab/Jupyter link, an Overleaf section, anything). Once set it shows
-as a **Notebook ↗** link that opens in a new tab, with an **Edit link** button next to it to change it.
+### One-time email setup
 
-## What's next
+1. **EmailJS template**: change its *Subject* to `{{subject}}` and its *Content* to `{{{message_html}}}`
+   (three braces, so the formatting comes through). *To Email* stays `{{to_email}}`.
+2. **For the scheduled emails**, add these as repository secrets (GitHub → Settings → Secrets and
+   variables → Actions):
+   - `FIREBASE_SERVICE_ACCOUNT_JSON`: Firebase console → Project settings → Service accounts →
+     Generate new private key; paste the whole file. Keep it secret.
+   - `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`: the values in `email-config.js`.
+   - `EMAILJS_PRIVATE_KEY`: EmailJS → Account → Security. If EmailJS has an option to allow API calls
+     from non-browser applications, switch it on.
+3. Test: GitHub → Actions → *Email digests* → *Run workflow*. "dry run" is ticked by default, so the
+   emails are printed in the log instead of sent; untick it to send for real.
 
-The sidebar's **What's next** panel lists the next five un-ticked items, soonest due date first (items
-with no due date are listed after those that do, in outline order). It's meant to answer "where do I pick
-up" without scanning the whole tree.
+## Security rules
 
-## Export
+`firestore.rules` enforces the same moves on the server, so the database itself refuses a student
+approving their own work, a stage change while the item is with the guide, a student writing the
+deliverable or recording an independent check, publication-ready before approval, or anyone outside the
+two accounts. **After any change to it: Firebase console → Firestore Database → Rules → paste the whole
+file → Publish.** The emails in `firestore.rules` must match `people` in `projects.js`.
 
-The **Export** button in the toolbar downloads a Markdown snapshot of the current state: the full outline
-with ticks, due dates, links and comment counts, plus the full comment and meeting history. Useful for
-committee reports or just archiving progress at a chapter milestone.
+## Data
 
-## Weekly digest email (optional, free)
+Stored under `trackers/{project}` in Firestore: `items` (one record per deliverable), `events`
+(append-only history), `deliverables`, `comments`, `meetings`, `decisions`, `questions`, `tasks`,
+`claims`, `logs`, `prefs`. Records from the earlier version of the tracker (ticks and stages on the
+project document) are read automatically. An earlier "approved" or tick comes back as *waiting for
+review*, so the guide confirms it once.
 
-Besides the per-comment/per-meeting emails above, a GitHub Actions workflow
-(`.github/workflows/weekly-digest.yml`) can send both of you a short summary every Monday: items ticked
-and commented on that week, anything overdue, anything due in the next 7 days, and upcoming meetings. It
-runs entirely on GitHub's free tier (no server, no Blaze plan) and reuses the same EmailJS account as the
-rest of the app. Setup, once:
+**Export ▾** in the header gives a full readable snapshot (.md), this week's report (.md), and a
+**backup (.json) of every record**. The free Firebase plan has no automatic backups, so take one now
+and then.
 
-1. **Firebase service account key**: in the Firebase console, go to *Project settings → Service accounts →
-   Generate new private key*. This downloads a JSON file — keep it secret, it's a master key for your
-   Firestore data.
-2. **EmailJS Private Key**: in the EmailJS dashboard, go to *Account → Security* and copy the **Private
-   Key** (sometimes labelled API key). Browsers don't need this (the comment/meeting emails work without
-   it), but a server-side script does, to prove it's really your account sending. If EmailJS has a setting
-   there for allowing API calls from non-browser apps / servers, turn it on too — otherwise the digest
-   send can come back with an authorization error.
-3. In your GitHub repository, go to **Settings → Secrets and variables → Actions → New repository secret**
-   and add these five:
-   - `FIREBASE_SERVICE_ACCOUNT_JSON` — paste the *entire contents* of the JSON file from step 1.
-   - `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY` — same values as in `email-config.js`.
-   - `EMAILJS_PRIVATE_KEY` — the Private Key from step 2.
-4. That's it — it'll run automatically every Monday at 06:00 UTC. To test it immediately, go to the
-   **Actions** tab → **Weekly digest** → **Run workflow**, then check the run's log and your inbox.
+## First-time setup
 
-If the outline in `index.html` is ever restructured, update the matching `OUTLINE` copy at the top of
-`scripts/weekly-digest.js` too, so the digest's item names stay readable instead of showing raw ids.
+1. Firebase project (free Spark plan) with Firestore and Google sign-in enabled.
+2. Put the web app config in `firebase-config.js` (`window.TRACKER_FIREBASE = {...}`).
+3. Publish `firestore.rules` (see above).
+4. GitHub Pages: Settings → Pages → Deploy from branch `main`, folder `/`. Add
+   `<username>.github.io` under Authentication → Settings → Authorized domains.
+5. Email: `email-config.js` plus the steps under *One-time email setup*.
 
-## Workflow stage per item
+## Files
 
-Each leaf item has a stage dropdown: **Derive → Implement → Test → Produce artifact → Interpret → Guide
-review → Approved**. Moving it to Approved also ticks the item (it's the same "done" signal used for the
-progress bars); moving it anywhere else doesn't untick it automatically, so ticking by hand still works
-exactly as before if you never touch the stage dropdown.
+`index.html` (page shell) · `app.css` · `app.js` (the interface) · `core.js` (the model, the rules
+about moves, reports and digests, shared by everything) · `projects.js` (outline and people) ·
+`firestore.rules` · `scripts/notify.js` (scheduled emails) · `tests/`.
 
-## Review actions
+## Tests
 
-Next to the stage dropdown, each item has three buttons: **Approve** (marks it Approved and ticks it),
-**Request changes** (prompts for a note, flags the item, and un-ticks it if it had been approved), and
-**Needs discussion** (prompts for a note, flags it without affecting the tick). A flagged item shows a
-coloured chip with the note; a **Clear** button removes the flag once it's resolved.
+```
+node --test tests/core.test.js tests/rules-model.test.js   # the state machine, reports, exports, rules model
+python3 tests/e2e.py                                        # both roles in a real browser (needs Playwright)
+npx firebase emulators:exec --only firestore --project demo-tracker "node --test tests/rules.test.js"
+```
 
-## Blockers
-
-The **+ Blocked** button on an item lets either of you flag it as stuck, with a short reason. It shows as
-a red chip on the item and feeds the Current blockers list in the guide view below.
-
-## Decisions and Questions
-
-Two small toolbar panels for things that aren't tied to one outline item: **Decisions** for things that
-were decided (with a "mark recorded" toggle once it's reflected in the writeup), and **Questions** for
-things to raise next time you meet (with a "mark answered" toggle). Both are visible to both of you and
-feed the guide view below.
-
-## Convert comment to task
-
-Under any comment on a leaf item, a **→ Task** button jumps to that item and opens its due-date picker —
-a quick way to turn "can you check this?" into something with a deadline.
-
-## For your guide (guide view)
-
-The **For your guide** toolbar button opens a focused summary instead of the full tree: items awaiting
-review (stage = Guide review, not yet approved), open decisions, current blockers, results produced since
-the last confirmed meeting, overdue milestones, open questions, items revised in the last 7 days, and
-items with an open "changes requested" flag. This is meant to be the one view your guide actually needs —
-they shouldn't have to scan the whole outline to know what needs their attention.
-
-## Daily research log
-
-The **Daily log** panel is a quick end-of-day entry: what you intended to do, what you actually did,
-files/results produced, what failed, what you learned, your current blocker, and the first action for
-tomorrow. Entries are listed newest-first and collapse to just the date until you click one open.
-
-## What's deferred (Phase 2)
-
-A few things from the original request are bigger, separate efforts and weren't built in this round:
-a redesigned opening screen that answers "what are my 3 actions today / what's blocked / what changed
-this week" in one glance; tiered email notifications (immediate vs. daily digest vs. weekly vs. "review
-unanswered for N days" vs. deadline warnings — right now every comment/meeting still emails immediately,
-and the Monday digest above is the only batched one); a Theory/Numerics "progressing together" skew
-indicator; and linking manuscript claims to the evidence items they rely on, to flag stale evidence. The
-data this round adds (stages, review flags, decisions, questions, logs) is what all of those would be
-built on top of, so they're a natural next step rather than a rewrite.
+The last one runs `firestore.rules` in the Firestore emulator (needs Java and
+`npm i -D firebase-tools @firebase/rules-unit-testing firebase`).

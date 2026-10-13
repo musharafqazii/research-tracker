@@ -1,45 +1,148 @@
 rules_version = '2';
-// Only these Google accounts can read or write the tracker. Put your own address and your guide's here,
-// then paste this file into Firebase console -> Firestore Database -> Rules -> Publish.
+// Who can do what in the research tracker. Paste this whole file into
+// Firebase console -> Firestore Database -> Rules, then click Publish.
+//
+// Two Google accounts have access, each with a role. The roles must match `people` in projects.js.
+// The item rules mirror the state machine in core.js: only the student sends work for review,
+// only the guide approves, requests changes or writes the deliverable, an item's stage can't move
+// while it is with the guide or approved, and the top two verification levels are the guide's.
 service cloud.firestore {
   match /databases/{database}/documents {
-    function allowed() {
-      return request.auth != null
-          && request.auth.token.email in [
-               'musharafqazi@physics.iitm.ac.in',
-               'garani@physics.iitm.ac.in'
-             ];
+
+    function email() { return request.auth.token.email.lower(); }
+    function isGuide() { return request.auth != null && email() == 'garani@physics.iitm.ac.in'; }
+    function isStudent() { return request.auth != null && email() == 'musharafqazi@physics.iitm.ac.in'; }
+    function allowed() { return isGuide() || isStudent(); }
+    function myRole() { return isGuide() ? 'guide' : 'student'; }
+    function mine() { return request.resource.data.by == request.auth.uid; }
+    function wasMine() { return resource.data.by == request.auth.uid; }
+    function changedOnly(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    /* ---------------- items: one record per deliverable ---------------- */
+    function itemShape() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['stage', 'review', 'verify', 'due', 'link', 'blocked', 'critical', 'spec', 'note', 'verifyNote',
+                               'stageAt', 'reviewAt', 'verifyAt', 'specAt', 'specBy', 'specName',
+                               'updatedAt', 'updatedBy', 'updatedName', 'updatedRole'])
+        && d.review in ['none', 'submitted', 'discussion', 'changes', 'approved']
+        && d.verify in ['unchecked', 'regulated', 'converged', 'independent', 'publication']
+        && (d.stage == null || (d.stage is int && d.stage >= 0 && d.stage <= 4))
+        && d.updatedBy == request.auth.uid
+        && d.updatedRole == myRole()
+        // anything with the guide or approved has finished the last work stage
+        && (!(d.review in ['submitted', 'discussion', 'approved']) || d.stage == 4)
+        // only approved results can be publication-ready
+        && (d.verify != 'publication' || d.review == 'approved');
     }
-    // one document per project: the ticks
+    function studentVerify(v) { return v in ['unchecked', 'regulated', 'converged']; }
+    function itemCreateOk() {
+      let d = request.resource.data;
+      return (d.review != 'approved' || isGuide())
+        && (isGuide() || studentVerify(d.verify))
+        && (isGuide() || d.spec == null);
+    }
+    function reviewMove(rb, ra, d) {
+      return rb == ra
+        // student: send for review (not while blocked), or withdraw
+        || (isStudent() && rb in ['none', 'changes'] && ra == 'submitted' && d.blocked == null)
+        || (isStudent() && rb in ['submitted', 'discussion'] && ra == 'none')
+        // guide: decide on submitted work, or reopen approved work
+        || (isGuide() && rb in ['submitted', 'discussion'] && ra in ['approved', 'discussion', 'changes'])
+        || (isGuide() && rb == 'approved' && ra == 'changes')
+        // either: a result found to be wrong goes back for changes, with its checks cleared
+        || (rb in ['submitted', 'discussion', 'approved'] && ra == 'changes' && d.verify == 'unchecked');
+    }
+    function itemUpdateOk() {
+      let d = request.resource.data;
+      let o = resource.data;
+      return (isGuide() || (d.spec == o.get('spec', null) && d.specBy == o.get('specBy', null)
+                            && d.specName == o.get('specName', '') && d.specAt == o.get('specAt', 0)))
+        // the review note only changes together with the review state (no rewriting someone's note)
+        && (d.note == o.get('note', null) || d.review != o.get('review', 'none'))
+        && (d.stage == o.get('stage', null) || o.get('review', 'none') in ['none', 'changes'])
+        && reviewMove(o.get('review', 'none'), d.review, d)
+        && (d.verify == o.get('verify', 'unchecked') || isGuide() || studentVerify(d.verify));
+    }
+
     match /trackers/{project} {
-      allow read, write: if allowed();
-      // comments: anyone on the list reads and adds; only the author deletes their own
-      match /comments/{comment} {
+      // The project document only holds records from the earlier version; they are read, not written.
+      allow read: if allowed();
+      allow write: if false;
+
+      match /items/{node} {
         allow read: if allowed();
-        allow create: if allowed() && request.resource.data.by == request.auth.uid;
-        allow delete: if allowed() && resource.data.by == request.auth.uid;
+        allow create: if allowed() && itemShape() && itemCreateOk();
+        allow update: if allowed() && itemShape() && itemUpdateOk();
+        allow delete: if false;
       }
-      // meetings: anyone on the list reads, proposes, confirms/declines or removes (just the two of you)
-      match /meetings/{meeting} {
+
+      // The history behind every change. Append-only.
+      match /events/{e} {
         allow read: if allowed();
-        allow create: if allowed() && request.resource.data.by == request.auth.uid;
+        allow create: if allowed() && mine() && request.resource.data.role == myRole()
+                      && request.resource.data.type is string && request.resource.data.at is number;
+        allow update, delete: if false;
+      }
+
+      // Deliverables the guide adds under a section. Archived, never deleted, so history stays readable.
+      match /deliverables/{d} {
+        allow read: if allowed();
+        allow create: if isGuide() && mine()
+                      && request.resource.data.keys().hasOnly(['parent', 'title', 'order', 'archived', 'at', 'by', 'email', 'name', 'role', 'updatedAt'])
+                      && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200
+                      && request.resource.data.parent is string;
+        allow update: if isGuide() && changedOnly(['title', 'order', 'archived', 'parent', 'updatedAt'])
+                      && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200;
+        allow delete: if false;
+      }
+
+      match /comments/{c} {
+        allow read: if allowed();
+        allow create: if allowed() && mine();
+        allow update: if allowed() && changedOnly(['taskId']);       // "made into a task"
+        allow delete: if allowed() && wasMine();
+      }
+      match /meetings/{m} {
+        allow read: if allowed();
+        allow create: if allowed() && mine();
+        // the other person confirms or declines; either can withdraw or remove
+        allow update: if allowed() && (!wasMine() || !changedOnly(['status', 'respondedBy', 'respondedName', 'respondedAt']));
+        allow delete: if allowed();
+      }
+      match /decisions/{x} {
+        allow read: if allowed();
+        allow create: if allowed() && mine();
+        // a requested decision is made by the other person
+        allow update: if allowed() && (!wasMine() || resource.data.get('status', 'open') != 'open');
+        allow delete: if false;
+      }
+      match /questions/{x} {
+        allow read: if allowed();
+        allow create: if allowed() && mine();
+        allow update: if allowed() && changedOnly(['answered', 'answeredAt']);
+        allow delete: if allowed() && wasMine();
+      }
+      match /tasks/{x} {
+        allow read: if allowed();
+        allow create: if allowed() && mine();
         allow update, delete: if allowed();
       }
-      // decisions and questions: anyone on the list reads and adds; either can mark one resolved/answered
-      match /decisions/{decision} {
+      match /claims/{x} {
         allow read: if allowed();
-        allow create: if allowed() && request.resource.data.by == request.auth.uid;
-        allow update: if allowed();
+        allow create: if allowed() && mine();
+        allow update, delete: if allowed();
       }
-      match /questions/{question} {
+      // Daily log: one entry per person per day; only the author edits it.
+      match /logs/{x} {
         allow read: if allowed();
-        allow create: if allowed() && request.resource.data.by == request.auth.uid;
-        allow update: if allowed();
+        allow create: if allowed() && mine();
+        allow update: if allowed() && wasMine() && mine();
+        allow delete: if allowed() && wasMine();
       }
-      // daily research log: anyone on the list reads and adds; entries are not edited or deleted
-      match /logs/{entry} {
+      // Email settings: each person edits only their own.
+      match /prefs/{key} {
         allow read: if allowed();
-        allow create: if allowed() && request.resource.data.by == request.auth.uid;
+        allow write: if allowed() && key == email().replace('[^a-z0-9]', '_');
       }
     }
   }

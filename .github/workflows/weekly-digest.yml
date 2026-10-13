@@ -1,29 +1,40 @@
-name: Weekly digest
+name: Email digests
 
+# Daily digest at 07:00 IST and the weekly report on Sunday at 19:00 IST (GitHub's clock is UTC).
+# Each person's email settings in the app decide what they actually receive.
 on:
   schedule:
-    # Every Monday 06:00 UTC (~11:30am IST). GitHub may delay a scheduled run by a
-    # few minutes at busy times; that's normal.
-    - cron: "0 6 * * 1"
-  workflow_dispatch: {} # lets you trigger a test run manually from the Actions tab
+    - cron: "30 1 * * *"     # 07:00 IST every day  -> daily digest
+    - cron: "30 13 * * 0"    # 19:00 IST on Sunday  -> weekly report
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily or weekly"
+        required: true
+        default: "daily"
+      dry_run:
+        description: "Print the emails in the log instead of sending them"
+        type: boolean
+        default: true
 
 jobs:
-  send-digest:
+  send:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - run: npm install firebase-admin
-      - run: node scripts/weekly-digest.js
+      - run: npm install --no-save --no-audit --no-fund firebase-admin@12
+      - name: Send
+        run: node scripts/notify.js "$MODE"
         env:
+          MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || (github.event.schedule == '30 13 * * 0' && 'weekly' || 'daily') }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '' }}
+          TZ: Asia/Kolkata
+          TRACKER_LINK: "https://musharafqazii.github.io/research-tracker/"
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           EMAILJS_SERVICE_ID: ${{ secrets.EMAILJS_SERVICE_ID }}
           EMAILJS_TEMPLATE_ID: ${{ secrets.EMAILJS_TEMPLATE_ID }}
           EMAILJS_PUBLIC_KEY: ${{ secrets.EMAILJS_PUBLIC_KEY }}
           EMAILJS_PRIVATE_KEY: ${{ secrets.EMAILJS_PRIVATE_KEY }}
-          NOTIFY_EMAILS: "musharafqazi@physics.iitm.ac.in,garani@physics.iitm.ac.in"
-          TRACKER_PROJECT_ID: "cgpp-scalar"
-          TRACKER_PROJECT_NAME: "CGPP-SCALAR"
-          TRACKER_LINK: "https://musharafqazii.github.io/research-tracker/"
