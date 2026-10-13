@@ -18,8 +18,9 @@
     name: "CGPP-SCALAR",
     goal: "Gravitational production of a conformally coupled massive scalar across a smooth inflation-to-radiation transition: to second order in scalar and tensor metric perturbations, first order in the quartic self-interaction, and their mixing.",
     people: [
-      { email: "musharafqazi@physics.iitm.ac.in", role: "student" },
-      { email: "garani@physics.iitm.ac.in", role: "guide" }
+      { email: "musharafqazi@physics.iitm.ac.in", role: "student" }
+      // Guide switched off for now, so nothing is emailed to them. To add back:
+      // , { email: "garani@physics.iitm.ac.in", role: "guide" }
     ],
     outline: `
 - Theory
