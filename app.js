@@ -590,7 +590,7 @@
     search.addEventListener("input", () => { query = search.value; updateTree(); });
     search.addEventListener("keydown", ev => { if (ev.key === "Escape") { search.value = ""; query = ""; updateTree(); search.blur(); } });
     const tree = h("div", { id: "tree" });
-    const aside = h("aside", { class: "aside" }, h("h3", { text: "Recent activity" }), h("ul", { class: "act", id: "activity" }),
+    const aside = h("aside", { class: "aside" }, h("div", { class: "ahead" }, h("h3", { text: "Recent activity" }), h("button", { class: "linkbtn", type: "button", id: "actClear", text: "Clear", hidden: true, onclick: clearActivity })), h("ul", { class: "act", id: "activity" }),
       h("div", { class: "legend" }, h("span", { text: "Click an item to open it. An item is done once your guide approves it." })));
     const sync = syncTable();
     const syncFold = sync ? fold("sync", "Theory and Numerics side by side" + (A.sync.outOfStep ? " · out of step on " + C.plural(A.sync.outOfStep, "item") : " · in step"), sync, "fold sub sync-fold") : null;
@@ -1008,14 +1008,23 @@
       btn(mine.length === evs.length ? "Clear history" : "Clear my " + C.plural(mine.length, "entry", "entries"), () => clearHistory(n, mine, evs.length - mine.length), "ghost")) : null;
     return fold("hist:" + n.id, "History · " + evs.length, h("div", null, list, clear), "hist");
   }
+  const actKey = () => "rt:actClear:" + project.id + ":" + String((me && me.email) || role);
+  // Clearing the feed only hides what is already there, for you, on this device. Nothing is deleted:
+  // item history and the weekly report are untouched.
+  function clearActivity() {
+    const before = LS.get(actKey(), 0), now = Math.max(Date.now(), ...st.events.map(e => e.at || 0), ...st.comments.map(c => c.at || 0));
+    LS.set(actKey(), now); renderActivity();
+    toast("Recent activity cleared. History is untouched.", { undo: () => { if (before) LS.set(actKey(), before); else LS.del(actKey()); renderActivity(); } });
+  }
   function renderActivity() {
     const ul = $("#activity"); if (!ul) return;
-    const items = [];
-    for (const e of st.events) { const t = C.describeEvent(e, idx, nameOf); if (t) items.push({ at: e.at, x: e, text: t, node: e.node }); }
-    for (const c of st.comments) items.push({ at: c.at, x: c, text: nameOf(c) + " commented on " + C.labelId(idx, c.node), node: c.node, quote: c.text });
+    const cut = LS.get(actKey(), 0), items = [];
+    for (const e of st.events) { if (e.at <= cut) continue; const t = C.describeEvent(e, idx, nameOf); if (t) items.push({ at: e.at, x: e, text: t, node: e.node }); }
+    for (const c of st.comments) { if (c.at <= cut) continue; items.push({ at: c.at, x: c, text: nameOf(c) + " commented on " + C.labelId(idx, c.node), node: c.node, quote: c.text }); }
     items.sort((a, b) => b.at - a.at);
     ul.textContent = "";
-    if (!items.length) { ul.append(h("li", { class: "muted small", style: "display:block", text: "Changes by you and " + otherLabel() + " appear here." })); return; }
+    const cb = $("#actClear"); if (cb) cb.hidden = !items.length;
+    if (!items.length) { ul.append(h("li", { class: "muted small", style: "display:block", text: cut ? "Cleared. New changes by you and " + otherLabel() + " appear here." : "Changes by you and " + otherLabel() + " appear here." })); return; }
     for (const it of items.slice(0, 14)) {
       const can = it.node && idx.nodes.has(it.node);
       ul.append(h("li", null, avatar(it.x), h("div", null,

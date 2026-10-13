@@ -175,6 +175,18 @@ async def main():
         check(after == guide_entries and after < before and guide_entries > 0, f"clearing history keeps only the guide's entries ({before} -> {after})")
         check("Result marked wrong" in await pn.text_content(), "the item itself is unchanged")
 
+        # ---- clearing recent activity only hides the feed; history stays
+        await page.click("#tab-outline"); await page.wait_for_timeout(200)
+        n_before = await page.locator("#activity li").count()
+        check(n_before > 0 and await page.locator("#actClear").is_visible(), f"recent activity shows entries and a Clear button ({n_before})")
+        await page.click("#actClear"); await page.wait_for_timeout(200)
+        check("Cleared" in await page.locator("#activity").text_content() and not await page.locator("#actClear").is_visible(), "Clear empties the feed")
+        await open_item(LEAF); pn = await panel()
+        await pn.locator("summary", has_text="History").click()
+        check(await pn.locator(".hlist li").count() > 0, "item history is untouched by clearing the feed")
+        await page.click("#toasts .toast button:has-text('Undo')") if await page.locator("#toasts .toast button:has-text('Undo')").count() else None
+        await page.wait_for_timeout(200)
+
         # ---- every view renders for both roles, and nothing scrolls sideways on a phone
         for r in ["student", "guide"]:
             await role(r)
