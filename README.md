@@ -46,18 +46,20 @@ the app or put them in `projects.js` (two spaces of indent per level).
 
 ## The pages
 
-- **Home**: only what needs you right now. For the student: what to do next, what's waiting for you,
-  what's coming up, and what's with your guide. For the guide: items to review (with Approve right
-  there), what needs your input, what's coming up, and what's back with your student.
-- **Items**: the outline. Click an item to see its status and the one next step, what to deliver,
-  its checks, due date, link and comments. Less frequent things (blocking, critical, "the result is
-  wrong", reopening, splitting into smaller deliverables) are under **More options**.
-- **Meetings**: propose and confirm times, questions for the next meeting, and decisions.
-- **Journal**: the daily log and the weekly report.
-- **More ▾** (top right): manuscript claims, email settings, downloads and backup, sign out.
+- **Today**: your three most important actions, what's blocked, what's with your guide or student,
+  what changed this week, deadlines, results not yet independently checked, deliverables not yet
+  written, manuscript claims on stale evidence, and whether Theory and Numerics are in step.
+- **Outline**: the full tree. Click an item for its deliverable, workflow, verification, details, tasks,
+  comments and history. Filters: open, with guide, flagged, not checked, approved.
+- **Review** (called *For guide* for the student): the guide's focused view, with approve and
+  request-changes buttons inline.
+- **Meetings**: propose and confirm times, questions for the next meeting, and decisions. A decision
+  you ask for is made by the other person.
+- **Log & report**: the daily research log (with hours by workstream) and the weekly report.
+- **Manuscript**: claims linked to the results they rest on, flagged when that evidence changes.
 
-If Firebase isn't set up (or you open `index.html` straight from disk), the tracker runs in a
-browser-only preview with a Student/Guide switch, so you can try both sides.
+The header shows your role. If Firebase isn't set up (or you open `index.html` straight from disk), the
+tracker runs in a browser-only preview with a Student/Guide switch, so you can try both sides.
 
 ## Email
 
@@ -99,7 +101,7 @@ file → Publish.** The emails in `firestore.rules` must match `people` in `proj
 ## Data
 
 Stored under `trackers/{project}` in Firestore: `items` (one record per deliverable), `events`
-(append-only history), `deliverables`, `comments`, `meetings`, `decisions`, `questions`, `tasks`,
+(history: never edited; each person can clear only their own entries), `deliverables`, `comments`, `meetings`, `decisions`, `questions`, `tasks`,
 `claims`, `logs`, `prefs`. Records from the earlier version of the tracker (ticks and stages on the
 project document) are read automatically. An earlier "approved" or tick comes back as *waiting for
 review*, so the guide confirms it once.

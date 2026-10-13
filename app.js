@@ -1001,8 +1001,12 @@
   function historySection(n) {
     const evs = st.events.filter(e => e.node === n.id).sort((a, b) => b.at - a.at);
     if (!evs.length) return null;
-    return fold("hist:" + n.id, "History · " + evs.length, h("ul", { class: "hlist" }, evs.slice(0, 80).map(e => h("li", null,
-      h("time", { datetime: new Date(e.at).toISOString(), text: C.fmtDate(e.at) + " " + C.fmtTime(e.at) }), C.describeEvent(e, idx, nameOf)))), "hist");
+    const mine = evs.filter(e => C.sameActor(e, whoAmI()));
+    const list = h("ul", { class: "hlist" }, evs.slice(0, 80).map(e => h("li", null,
+      h("time", { datetime: new Date(e.at).toISOString(), text: C.fmtDate(e.at) + " " + C.fmtTime(e.at) }), C.describeEvent(e, idx, nameOf))));
+    const clear = canWrite() && mine.length ? h("div", { class: "rc", style: "margin-top:10px" },
+      btn(mine.length === evs.length ? "Clear history" : "Clear my " + C.plural(mine.length, "entry", "entries"), () => clearHistory(n, mine, evs.length - mine.length), "ghost")) : null;
+    return fold("hist:" + n.id, "History · " + evs.length, h("div", null, list, clear), "hist");
   }
   function renderActivity() {
     const ul = $("#activity"); if (!ul) return;
@@ -1425,6 +1429,17 @@
       if (!good) fails++;
     }
     toast(fails ? "Restarted " + (todo.length - fails) + " of " + todo.length + " items; " + fails + " couldn't be changed." : "All " + C.plural(todo.length, "item") + " are back at Derive.");
+  }
+
+  // Clears your own history entries on one item. The item itself doesn't change; the other person's entries stay.
+  async function clearHistory(n, mine, others) {
+    const ok = await confirmBox("Clear your history for " + pretty(n.title) + "?",
+      "This deletes " + C.plural(mine.length, "entry", "entries") + " you made here. The item stays exactly as it is." +
+      (others ? " " + C.plural(others, "entry", "entries") + " by " + otherLabel() + " stay." : "") + " Cleared entries also drop out of the weekly report.", "Clear");
+    if (!ok) return;
+    let fails = 0;
+    for (const e of mine) { try { await backend.remove("events", e.id); } catch (err) { fails++; console.error(err); } }
+    if (fails) fail({ code: "permission-denied" }); else toast("History cleared.");
   }
 
   /* ---------- deliverables your guide adds under a section ---------- */

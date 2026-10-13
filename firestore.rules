@@ -76,12 +76,13 @@ service cloud.firestore {
         allow delete: if false;
       }
 
-      // The history behind every change. Append-only.
+      // The history behind every change. Never edited; each person can clear only their own entries.
       match /events/{e} {
         allow read: if allowed();
         allow create: if allowed() && mine() && request.resource.data.role == myRole()
                       && request.resource.data.type is string && request.resource.data.at is number;
-        allow update, delete: if false;
+        allow update: if false;
+        allow delete: if allowed() && wasMine();
       }
 
       // Deliverables the guide adds under a section. Archived, never deleted, so history stays readable.

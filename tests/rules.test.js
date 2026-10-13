@@ -148,13 +148,14 @@ test("items can't be deleted", async () => {
   await assertFails(db(GUIDE).doc(T + "/items/a").delete());
 });
 
-test("events are append-only and carry the right role", async () => {
+test("history carries the right role; each person clears only their own", async () => {
   const ref = db(STUDENT).collection(T + "/events");
   await assertSucceeds(ref.doc("e1").set({ type: "stage", node: "a", data: {}, at: Date.now(), by: STUDENT.uid, role: "student", name: "S", email: STUDENT.email }));
   await assertFails(ref.doc("e2").set({ type: "approve", node: "a", data: {}, at: Date.now(), by: STUDENT.uid, role: "guide", name: "S", email: STUDENT.email }));
   await assertFails(ref.doc("e3").set({ type: "stage", node: "a", data: {}, at: Date.now(), by: GUIDE.uid, role: "student" }));
   await assertFails(ref.doc("e1").update({ type: "approve" }));
-  await assertFails(ref.doc("e1").delete());
+  await assertFails(db(GUIDE).doc(T + "/events/e1").delete());      // not the guide's entry
+  await assertSucceeds(ref.doc("e1").delete());                      // the student clears their own
 });
 
 test("deliverables: the guide adds, renames and archives; nobody deletes", async () => {

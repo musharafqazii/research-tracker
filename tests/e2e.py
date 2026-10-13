@@ -164,6 +164,17 @@ async def main():
         await open_item(other); op = page.locator(f'li[data-id="{other}"] > .ipanel')
         check(await op.locator(".strip button").count() > 0, "items taken back from review are unlocked")
 
+        # ---- clearing history removes only your own entries
+        await open_item(LEAF); pn = await panel()
+        await pn.locator("summary", has_text="History").click()
+        before = await pn.locator(".hlist li").count()
+        guide_entries = await pn.locator(".hlist li", has_text="Guide (preview)").count()
+        await pn.locator("button:has-text('Clear my')").click(); await page.wait_for_timeout(150)
+        await page.click("dialog.confirm button:has-text('Clear')"); await page.wait_for_timeout(500)
+        after = await pn.locator(".hlist li").count()
+        check(after == guide_entries and after < before and guide_entries > 0, f"clearing history keeps only the guide's entries ({before} -> {after})")
+        check("Result marked wrong" in await pn.text_content(), "the item itself is unchanged")
+
         # ---- every view renders for both roles, and nothing scrolls sideways on a phone
         for r in ["student", "guide"]:
             await role(r)
